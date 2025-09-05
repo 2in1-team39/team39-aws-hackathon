@@ -10,7 +10,6 @@ const PaintPalette = ({ selectedColor, onColorSelect, brushSize, setBrushSize })
       padding: '15px',
       marginBottom: '10px'
     }}>
-      <h4 style={{ margin: '0 0 10px 0' }}>페인트 색상</h4>
       
       <div style={{
         display: 'grid',

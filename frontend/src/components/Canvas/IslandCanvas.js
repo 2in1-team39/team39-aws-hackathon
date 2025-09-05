@@ -74,20 +74,24 @@ const IslandCanvas = ({
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   
+  const updateCursor = () => {
+    if (!stageRef.current) return;
+    const stage = stageRef.current;
+    
+    if (currentTool === TOOLS.PAINT) {
+      const size = brushSize * 12;
+      const color = selectedColor ? selectedColor.color.replace('#', '%23') : '%23000000';
+      stage.container().style.cursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+    } else {
+      stage.container().style.cursor = 'default';
+    }
+  };
+  
   useEffect(() => {
     const updateCanvasSize = () => {
-      const sidebar = 300;
-      const width = window.innerWidth - sidebar;
+      const width = window.innerWidth;
       const height = window.innerHeight;
       setCanvasSize({ width, height });
-      
-      // 초기 위치 설정
-      if (backgroundImage && stagePos.x === 0 && stagePos.y === 0) {
-        setStagePos({
-          x: (width - imageWidth * zoomLevel) / 2,
-          y: (height - imageHeight * zoomLevel) / 2
-        });
-      }
     };
     
     const handleKeyDown = (e) => {
@@ -126,6 +130,8 @@ const IslandCanvas = ({
   const imageWidth = backgroundImage ? backgroundImage.width : 800;
   const imageHeight = backgroundImage ? backgroundImage.height : 600;
   
+
+  
   const gridDisplayWidth = canvasSize.width * 0.9;
   const gridDisplayHeight = canvasSize.height * 0.9;
   
@@ -138,7 +144,6 @@ const IslandCanvas = ({
     
     const lines = [];
     const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
-    
     // 메인 격자 (7x6 구역)
     for (let i = 0; i <= 7; i++) {
       lines.push(
@@ -274,10 +279,11 @@ const IslandCanvas = ({
     }
     
     cellsToPaint.forEach(({ x: centerX, y: centerY }) => {
+      const offset = Math.floor(brushSize / 2);
       for (let dx = 0; dx < brushSize; dx++) {
         for (let dy = 0; dy < brushSize; dy++) {
-          const x = centerX + dx;
-          const y = centerY + dy;
+          const x = centerX - offset + dx;
+          const y = centerY - offset + dy;
           
           if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
             const key = `${x},${y}`;
@@ -307,6 +313,11 @@ const IslandCanvas = ({
     const stage = e.target.getStage();
     const pos = stage.getPointerPosition();
     
+    // 오브젝트 도구일 때는 페인트 비활성화
+    if (currentTool === TOOLS.OBJECT) {
+      return;
+    }
+    
     // 오른쪽 버튼 상태 관리
     if (e.evt.button === 2) {
       setIsRightPressed(true);
@@ -332,10 +343,8 @@ const IslandCanvas = ({
         const gridX = Math.floor(adjustedX / cellSize);
         const gridY = Math.floor(adjustedY / cellSize);
         
-        if (isShiftPressed && lastPaintPos) {
-          paintCells(gridX, gridY, true);
-        } else {
-          paintCells(gridX, gridY);
+        paintCells(gridX, gridY, isShiftPressed && lastPaintPos);
+        if (!isShiftPressed) {
           setLastPaintPos({ x: gridX, y: gridY });
         }
       }
@@ -374,10 +383,11 @@ const IslandCanvas = ({
           const newPaintData = { ...paintData };
           let hasChanges = false;
           
+          const offset = Math.floor(brushSize / 2);
           for (let dx = 0; dx < brushSize; dx++) {
             for (let dy = 0; dy < brushSize; dy++) {
-              const eraseX = gridX + dx;
-              const eraseY = gridY + dy;
+              const eraseX = gridX - offset + dx;
+              const eraseY = gridY - offset + dy;
               
               if (eraseX >= 0 && eraseX < GRID_CONFIG.COLS && eraseY >= 0 && eraseY < GRID_CONFIG.ROWS) {
                 // 오브젝트 삭제
@@ -408,7 +418,7 @@ const IslandCanvas = ({
       return;
     }
     
-    if (isDragging && (currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER)) {
+    if (isDragging && (currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER) && !isSpacePressed && currentTool !== TOOLS.OBJECT) {
       const adjustedX = (pos.x - stagePos.x) / zoomLevel;
       const adjustedY = (pos.y - stagePos.y) / zoomLevel;
       
@@ -417,36 +427,17 @@ const IslandCanvas = ({
         const gridX = Math.floor(adjustedX / cellSize);
         const gridY = Math.floor(adjustedY / cellSize);
         
-        if (!isShiftPressed) {
-          paintCells(gridX, gridY);
-          setLastPaintPos({ x: gridX, y: gridY });
+        // 이전 위치와 현재 위치 사이의 모든 점을 칠하기
+        if (lastPaintPos) {
+          paintCells(gridX, gridY, true); // 직선 그리기 사용
+        } else {
+          paintCells(gridX, gridY, false);
         }
+        setLastPaintPos({ x: gridX, y: gridY });
       }
     }
     
-    // 커서 스타일 변경
-    if (isSpacePressed) {
-      stage.container().style.cursor = 'grab';
-    } else if (isRightPressed) {
-      stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ff6b6b\' d=\'M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l8.48-8.48c.79-.78 2.05-.78 2.84 0l2.11 2.12zm-1.41 1.41L12.7 7.1 16.9 11.3l2.12-2.12-4.19-4.21z\'/%3E%3Cpath fill=\'%23ffa8a8\' d=\'M12.7 7.1L8.51 11.3 12.7 15.5 16.9 11.3 12.7 7.1z\'/%3E%3C/svg%3E") 12 12, auto';
-    } else {
-      // 도구별 커서 설정
-      switch (currentTool) {
-        case TOOLS.PAINT:
-          const size = brushSize * 8;
-          const color = selectedColor ? selectedColor.color.replace('#', '%23') : '%23000000';
-          stage.container().style.cursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1' opacity='0.8'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
-          break;
-        case TOOLS.ERASER:
-          stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ff6b6b\' d=\'M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l8.48-8.48c.79-.78 2.05-.78 2.84 0l2.11 2.12zm-1.41 1.41L12.7 7.1 16.9 11.3l2.12-2.12-4.19-4.21z\'/%3E%3Cpath fill=\'%23ffa8a8\' d=\'M12.7 7.1L8.51 11.3 12.7 15.5 16.9 11.3 12.7 7.1z\'/%3E%3C/svg%3E") 12 12, auto';
-          break;
-        case TOOLS.OBJECT:
-          stage.container().style.cursor = 'crosshair';
-          break;
-        default:
-          stage.container().style.cursor = 'default';
-      }
-    }
+
   };
   
   const handleMouseUp = (e) => {
@@ -455,26 +446,7 @@ const IslandCanvas = ({
     setLastPointerPos(null);
     setIsRightPressed(false);
     
-    // 커서 복원
-    if (isSpacePressed) {
-      stage.container().style.cursor = 'grab';
-    } else {
-      switch (currentTool) {
-        case TOOLS.PAINT:
-          const size = brushSize * 8;
-          const color = selectedColor ? selectedColor.color.replace('#', '%23') : '%23000000';
-          stage.container().style.cursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1' opacity='0.8'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
-          break;
-        case TOOLS.ERASER:
-          stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ff6b6b\' d=\'M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l8.48-8.48c.79-.78 2.05-.78 2.84 0l2.11 2.12zm-1.41 1.41L12.7 7.1 16.9 11.3l2.12-2.12-4.19-4.21z\'/%3E%3Cpath fill=\'%23ffa8a8\' d=\'M12.7 7.1L8.51 11.3 12.7 15.5 16.9 11.3 12.7 7.1z\'/%3E%3C/svg%3E") 12 12, auto';
-          break;
-        case TOOLS.OBJECT:
-          stage.container().style.cursor = 'crosshair';
-          break;
-        default:
-          stage.container().style.cursor = 'default';
-      }
-    }
+
     
     if (!isShiftPressed) {
       setLastPaintPos(null);
@@ -486,13 +458,14 @@ const IslandCanvas = ({
       width: '100%', 
       height: '100vh', 
       display: 'flex', 
-      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
       backgroundColor: '#7AD8C6'
     }}>
       <div style={{
-        position: 'absolute',
-        top: '10px',
-        right: '10px',
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
         backgroundColor: 'rgba(0,0,0,0.7)',
         color: 'white',
         padding: '8px 12px',
@@ -502,34 +475,30 @@ const IslandCanvas = ({
       }}>
         줌: {Math.round(zoomLevel * 100)}%
       </div>
-      <Stage
-        width={canvasSize.width}
-        height={canvasSize.height}
-        ref={stageRef}
-        onClick={handleStageClick}
-        onContextMenu={handleContextMenu}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onWheel={handleWheel}
-        scaleX={zoomLevel}
-        scaleY={zoomLevel}
-        x={stagePos.x}
-        y={stagePos.y}
-        pixelRatio={window.devicePixelRatio || 1}
-      >
+      {backgroundImage && (
+        <Stage
+          width={canvasSize.width}
+          height={canvasSize.height}
+          ref={stageRef}
+          onClick={handleStageClick}
+          onContextMenu={handleContextMenu}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onWheel={handleWheel}
+          scaleX={zoomLevel}
+          scaleY={zoomLevel}
+          x={stagePos.x}
+          y={stagePos.y}
+          pixelRatio={window.devicePixelRatio || 1}
+        >
         {/* 배경 레이어 */}
         <Layer>
-          <Rect
-            width={GRID_CONFIG.CANVAS_WIDTH}
-            height={GRID_CONFIG.CANVAS_HEIGHT}
-            fill={COLORS.BACKGROUND}
-          />
           {backgroundImage && (
             <KonvaImage
               image={backgroundImage}
-              x={0}
-              y={0}
+              x={(canvasSize.width - backgroundImage.width * zoomLevel) / 2 / zoomLevel}
+              y={(canvasSize.height - backgroundImage.height * zoomLevel) / 2 / zoomLevel}
               imageSmoothingEnabled={false}
             />
           )}
@@ -616,7 +585,8 @@ const IslandCanvas = ({
         <Layer>
           {drawGrid()}
         </Layer>
-      </Stage>
+        </Stage>
+      )}
     </div>
   );
 };

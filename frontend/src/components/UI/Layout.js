@@ -9,7 +9,7 @@ const Layout = ({ children, sidebar }) => {
     }}>
       {/* 사이드바 */}
       <div style={{
-        width: '300px',
+        width: '200px',
         backgroundColor: '#f8f9fa',
         padding: '20px',
         overflowY: 'auto',

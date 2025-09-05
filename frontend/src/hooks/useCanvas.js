@@ -1,15 +1,19 @@
 import { useState, useRef } from 'react';
-import { TOOLS } from '../constants/objectTypes';
+import { TOOLS, PAINT_COLORS } from '../constants/objectTypes';
 
 export const useCanvas = () => {
-  const [currentTool, setCurrentTool] = useState(TOOLS.SELECT);
+  const [currentTool, setCurrentTool] = useState(TOOLS.PAINT);
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [objects, setObjects] = useState([]);
   const [paintData, setPaintData] = useState({});
-  const [selectedColor, setSelectedColor] = useState(null);
+  const [selectedColor, setSelectedColor] = useState(PAINT_COLORS.WATER);
   const [brushSize, setBrushSize] = useState(1);
   const [isDragging, setIsDragging] = useState(false);
-  const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  const [stagePos, setStagePos] = useState(() => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+    return { x: width / 2, y: height / 2 };
+  });
   const [isSpacePressed, setIsSpacePressed] = useState(false);
   const [isShiftPressed, setIsShiftPressed] = useState(false);
   const [lastPaintPos, setLastPaintPos] = useState(null);
@@ -39,6 +43,7 @@ export const useCanvas = () => {
     setObjects([]);
     setPaintData({});
     setBackgroundImage(null);
+    setStep('upload');
   };
 
   return {

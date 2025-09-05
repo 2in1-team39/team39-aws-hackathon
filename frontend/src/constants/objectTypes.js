@@ -12,11 +12,11 @@ export const PAINT_COLORS = {
   SAND: { id: 'sand', name: '모래', color: '#EEE6A5' },
   ISLAND: { id: 'island', name: '섬', color: '#417B41' },
   CLIFF1: { id: 'cliff1', name: '1층 절벽', color: '#3D9B3A' },
-  CLIFF2: { id: 'cliff2', name: '2엵 절벽', color: '#5CC648' }
+  CLIFF2: { id: 'cliff2', name: '2엵 절벽', color: '#5CC648' },
+  ROAD: { id: 'road', name: '도로', color: '#BBA774' }
 };
 
 export const TOOLS = {
-  SELECT: 'select',
   PAINT: 'paint',
   OBJECT: 'object',
   ERASER: 'eraser'

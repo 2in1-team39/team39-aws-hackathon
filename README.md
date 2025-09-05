@@ -30,8 +30,20 @@ npm start
 ```bash
 cd backend
 pip install -r requirements.txt
-uvicorn main:app --reload
+python main.py
 ```
+
+## 현재 구현된 기능
+
+- ✅ 7×6 격자 시스템
+- ✅ 배경 이미지 업로드 (드래그 앤 드롭)
+- ✅ 오브젝트 배치 (나무, 건물, 장식, 다리, 경사로)
+- ✅ 오브젝트 삭제 (지우개 도구)
+- ✅ 프로젝트 저장 (JSON 파일 다운로드)
+- ✅ 캔버스 초기화
+- ✅ 실시간 격자 가이드
+- ✅ 도구 선택 UI
+- ✅ FastAPI 백엔드 서버
 
 ## 프로젝트 구조
 

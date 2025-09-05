@@ -47,6 +47,7 @@ const IslandCanvas = ({
   onCanvasClick, 
   stageRef,
   currentTool,
+  onToolChange,
   paintData,
   setPaintData,
   selectedColor,
@@ -144,14 +145,17 @@ const IslandCanvas = ({
     
     const lines = [];
     const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
+    const offsetX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
+    const offsetY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y;
+    
     // 메인 격자 (7x6 구역)
     for (let i = 0; i <= 7; i++) {
       lines.push(
         <Line
           key={`main-v-${i}`}
-          points={[i * 16 * cellSize, 0, i * 16 * cellSize, backgroundImage.height]}
+          points={[offsetX + i * 16 * cellSize * zoomLevel, offsetY, offsetX + i * 16 * cellSize * zoomLevel, offsetY + backgroundImage.height * zoomLevel]}
           stroke={COLORS.GRID_LINE}
-          strokeWidth={0.5}
+          strokeWidth={0.5 * zoomLevel}
           opacity={0.3}
         />
       );
@@ -161,9 +165,9 @@ const IslandCanvas = ({
       lines.push(
         <Line
           key={`main-h-${i}`}
-          points={[0, i * 16 * cellSize, backgroundImage.width, i * 16 * cellSize]}
+          points={[offsetX, offsetY + i * 16 * cellSize * zoomLevel, offsetX + backgroundImage.width * zoomLevel, offsetY + i * 16 * cellSize * zoomLevel]}
           stroke={COLORS.GRID_LINE}
-          strokeWidth={0.5}
+          strokeWidth={0.5 * zoomLevel}
           opacity={0.3}
         />
       );
@@ -172,16 +176,16 @@ const IslandCanvas = ({
     // 서브 격자 (16x16 칸)
     for (let col = 0; col < 7; col++) {
       for (let row = 0; row < 6; row++) {
-        const startX = col * 16 * cellSize;
-        const startY = row * 16 * cellSize;
+        const startX = offsetX + col * 16 * cellSize * zoomLevel;
+        const startY = offsetY + row * 16 * cellSize * zoomLevel;
         
         for (let i = 1; i < 16; i++) {
           lines.push(
             <Line
               key={`sub-v-${col}-${row}-${i}`}
-              points={[startX + i * cellSize, startY, startX + i * cellSize, startY + 16 * cellSize]}
+              points={[startX + i * cellSize * zoomLevel, startY, startX + i * cellSize * zoomLevel, startY + 16 * cellSize * zoomLevel]}
               stroke={COLORS.SUB_GRID_LINE}
-              strokeWidth={0.2}
+              strokeWidth={0.2 * zoomLevel}
               opacity={0.2}
             />
           );
@@ -191,9 +195,9 @@ const IslandCanvas = ({
           lines.push(
             <Line
               key={`sub-h-${col}-${row}-${i}`}
-              points={[startX, startY + i * cellSize, startX + 16 * cellSize, startY + i * cellSize]}
+              points={[startX, startY + i * cellSize * zoomLevel, startX + 16 * cellSize * zoomLevel, startY + i * cellSize * zoomLevel]}
               stroke={COLORS.SUB_GRID_LINE}
-              strokeWidth={0.2}
+              strokeWidth={0.2 * zoomLevel}
               opacity={0.2}
             />
           );
@@ -208,17 +212,28 @@ const IslandCanvas = ({
     if (!backgroundImage || isDragging || isSpacePressed) return;
     
     const pos = e.target.getStage().getPointerPosition();
-    const adjustedX = (pos.x - stagePos.x) / zoomLevel;
-    const adjustedY = (pos.y - stagePos.y) / zoomLevel;
+    
+    // 이미지 시작 위치 계산
+    const imageStartX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
+    const imageStartY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y;
+    
+    // 이미지 내에서의 좌표
+    const imageX = pos.x - imageStartX;
+    const imageY = pos.y - imageStartY;
+    
+    // 이미지 범위 체크
+    if (imageX < 0 || imageY < 0 || imageX > backgroundImage.width * zoomLevel || imageY > backgroundImage.height * zoomLevel) {
+      return;
+    }
     
     const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
     
-    const gridX = Math.floor(adjustedX / cellSize);
-    const gridY = Math.floor(adjustedY / cellSize);
+    const gridX = Math.floor(imageX / (cellSize * zoomLevel));
+    const gridY = Math.floor(imageY / (cellSize * zoomLevel));
     
     if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
       const isRightClick = e.evt.button === 2;
-      onCanvasClick(gridX, gridY, adjustedX, adjustedY, isRightClick);
+      onCanvasClick(gridX, gridY, imageX, imageY, isRightClick);
     }
   };
   
@@ -235,18 +250,30 @@ const IslandCanvas = ({
     const newScale = e.evt.deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
     const clampedScale = Math.max(0.1, Math.min(5, newScale));
     
-    // 마우스 위치 기준 확대
-    const mousePointTo = {
-      x: (pointer.x - stagePos.x) / oldScale,
-      y: (pointer.y - stagePos.y) / oldScale
-    };
+    // 현재 이미지 위치
+    const currentImageX = (canvasSize.width - backgroundImage.width * oldScale) / 2 + stagePos.x;
+    const currentImageY = (canvasSize.height - backgroundImage.height * oldScale) / 2 + stagePos.y;
     
-    const newPos = {
-      x: pointer.x - mousePointTo.x * clampedScale,
-      y: pointer.y - mousePointTo.y * clampedScale
-    };
+    // 마우스가 이미지 내에서 가리키는 비율 좌표
+    const mouseRatioX = (pointer.x - currentImageX) / (backgroundImage.width * oldScale);
+    const mouseRatioY = (pointer.y - currentImageY) / (backgroundImage.height * oldScale);
     
-    setStagePos(newPos);
+    // 새로운 이미지 크기에서 마우스가 가리킬 위치
+    const newMouseX = mouseRatioX * backgroundImage.width * clampedScale;
+    const newMouseY = mouseRatioY * backgroundImage.height * clampedScale;
+    
+    // 마우스 위치가 고정되도록 이미지 위치 조정
+    const newImageX = pointer.x - newMouseX;
+    const newImageY = pointer.y - newMouseY;
+    
+    // 기본 중앙 위치에서의 오프셋 계산
+    const centerX = (canvasSize.width - backgroundImage.width * clampedScale) / 2;
+    const centerY = (canvasSize.height - backgroundImage.height * clampedScale) / 2;
+    
+    setStagePos({
+      x: newImageX - centerX,
+      y: newImageY - centerY
+    });
     setZoomLevel(clampedScale);
   };
   
@@ -318,10 +345,15 @@ const IslandCanvas = ({
       return;
     }
     
-    // 오른쪽 버튼 상태 관리
+    // 오른쪽 버튼 상태 관리 - 지우개 모드
     if (e.evt.button === 2) {
       setIsRightPressed(true);
       setIsDragging(true);
+      
+      // 지우개 도구로 전환
+      onToolChange(TOOLS.ERASER);
+      
+      // 지우개 커서
       stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ff6b6b\' d=\'M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l8.48-8.48c.79-.78 2.05-.78 2.84 0l2.11 2.12zm-1.41 1.41L12.7 7.1 16.9 11.3l2.12-2.12-4.19-4.21z\'/%3E%3Cpath fill=\'%23ffa8a8\' d=\'M12.7 7.1L8.51 11.3 12.7 15.5 16.9 11.3 12.7 7.1z\'/%3E%3C/svg%3E") 12 12, auto';
       return;
     }
@@ -335,17 +367,25 @@ const IslandCanvas = ({
     
     if (currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER) {
       setIsDragging(true);
-      const adjustedX = (pos.x - stagePos.x) / zoomLevel;
-      const adjustedY = (pos.y - stagePos.y) / zoomLevel;
       
       if (backgroundImage) {
-        const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
-        const gridX = Math.floor(adjustedX / cellSize);
-        const gridY = Math.floor(adjustedY / cellSize);
+        // 이미지 시작 위치 계산
+        const imageStartX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
+        const imageStartY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y;
         
-        paintCells(gridX, gridY, isShiftPressed && lastPaintPos);
-        if (!isShiftPressed) {
-          setLastPaintPos({ x: gridX, y: gridY });
+        // 이미지 내에서의 좌표
+        const imageX = pos.x - imageStartX;
+        const imageY = pos.y - imageStartY;
+        
+        const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
+        const gridX = Math.floor(imageX / (cellSize * zoomLevel));
+        const gridY = Math.floor(imageY / (cellSize * zoomLevel));
+        
+        if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
+          paintCells(gridX, gridY, isShiftPressed && lastPaintPos);
+          if (!isShiftPressed) {
+            setLastPaintPos({ x: gridX, y: gridY });
+          }
         }
       }
     }
@@ -370,13 +410,18 @@ const IslandCanvas = ({
     
     // 오른쪽 버튼 드래그 시 지우기
     if (isDragging && isRightPressed) {
-      const adjustedX = (pos.x - stagePos.x) / zoomLevel;
-      const adjustedY = (pos.y - stagePos.y) / zoomLevel;
-      
       if (backgroundImage) {
+        // 이미지 시작 위치 계산
+        const imageStartX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
+        const imageStartY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y;
+        
+        // 이미지 내에서의 좌표
+        const imageX = pos.x - imageStartX;
+        const imageY = pos.y - imageStartY;
+        
         const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
-        const gridX = Math.floor(adjustedX / cellSize);
-        const gridY = Math.floor(adjustedY / cellSize);
+        const gridX = Math.floor(imageX / (cellSize * zoomLevel));
+        const gridY = Math.floor(imageY / (cellSize * zoomLevel));
         
         if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
           // 브러시 크기만큼 지우기
@@ -419,21 +464,28 @@ const IslandCanvas = ({
     }
     
     if (isDragging && (currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER) && !isSpacePressed && currentTool !== TOOLS.OBJECT) {
-      const adjustedX = (pos.x - stagePos.x) / zoomLevel;
-      const adjustedY = (pos.y - stagePos.y) / zoomLevel;
-      
       if (backgroundImage) {
-        const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
-        const gridX = Math.floor(adjustedX / cellSize);
-        const gridY = Math.floor(adjustedY / cellSize);
+        // 이미지 시작 위치 계산
+        const imageStartX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
+        const imageStartY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y;
         
-        // 이전 위치와 현재 위치 사이의 모든 점을 칠하기
-        if (lastPaintPos) {
-          paintCells(gridX, gridY, true); // 직선 그리기 사용
-        } else {
-          paintCells(gridX, gridY, false);
+        // 이미지 내에서의 좌표
+        const imageX = pos.x - imageStartX;
+        const imageY = pos.y - imageStartY;
+        
+        const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
+        const gridX = Math.floor(imageX / (cellSize * zoomLevel));
+        const gridY = Math.floor(imageY / (cellSize * zoomLevel));
+        
+        if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
+          // 이전 위치와 현재 위치 사이의 모든 점을 칠하기
+          if (lastPaintPos) {
+            paintCells(gridX, gridY, true); // 직선 그리기 사용
+          } else {
+            paintCells(gridX, gridY, false);
+          }
+          setLastPaintPos({ x: gridX, y: gridY });
         }
-        setLastPaintPos({ x: gridX, y: gridY });
       }
     }
     
@@ -444,9 +496,12 @@ const IslandCanvas = ({
     const stage = e.target.getStage();
     setIsDragging(false);
     setLastPointerPos(null);
-    setIsRightPressed(false);
     
-
+    // 오른쪽 버튼 해제 시 원래 도구로 복귀
+    if (isRightPressed && e.evt.button === 2) {
+      onToolChange(TOOLS.PAINT); // 기본적으로 페인트로 복귀
+    }
+    setIsRightPressed(false);
     
     if (!isShiftPressed) {
       setLastPaintPos(null);
@@ -486,10 +541,6 @@ const IslandCanvas = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onWheel={handleWheel}
-          scaleX={zoomLevel}
-          scaleY={zoomLevel}
-          x={stagePos.x}
-          y={stagePos.y}
           pixelRatio={window.devicePixelRatio || 1}
         >
         {/* 배경 레이어 */}
@@ -497,8 +548,10 @@ const IslandCanvas = ({
           {backgroundImage && (
             <KonvaImage
               image={backgroundImage}
-              x={(canvasSize.width - backgroundImage.width * zoomLevel) / 2 / zoomLevel}
-              y={(canvasSize.height - backgroundImage.height * zoomLevel) / 2 / zoomLevel}
+              x={(canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x}
+              y={(canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y}
+              width={backgroundImage.width * zoomLevel}
+              height={backgroundImage.height * zoomLevel}
               imageSmoothingEnabled={false}
             />
           )}
@@ -512,10 +565,10 @@ const IslandCanvas = ({
             return (
               <Rect
                 key={key}
-                x={x * cellSize}
-                y={y * cellSize}
-                width={cellSize}
-                height={cellSize}
+                x={(canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x + x * cellSize * zoomLevel}
+                y={(canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y + y * cellSize * zoomLevel}
+                width={cellSize * zoomLevel}
+                height={cellSize * zoomLevel}
                 fill={color}
                 opacity={1}
               />
@@ -531,8 +584,8 @@ const IslandCanvas = ({
             return (
               <Group
                 key={obj.id}
-                x={obj.gridX * cellSize}
-                y={obj.gridY * cellSize}
+                x={(canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x + obj.gridX * cellSize * zoomLevel}
+                y={(canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y + obj.gridY * cellSize * zoomLevel}
                 draggable={true}
                 onDragStart={() => setDraggedObject(obj)}
                 onDragEnd={(e) => {
@@ -572,8 +625,8 @@ const IslandCanvas = ({
                 <ObjectImage
                   x={0}
                   y={0}
-                  width={cellSize * objSize}
-                  height={cellSize * objSize}
+                  width={cellSize * objSize * zoomLevel}
+                  height={cellSize * objSize * zoomLevel}
                   imageSrc={obj.image}
                 />
               </Group>

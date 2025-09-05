@@ -293,6 +293,7 @@ function App() {
           onCanvasClick={handleCanvasClick}
           stageRef={stageRef}
           currentTool={currentTool}
+          onToolChange={setCurrentTool}
           paintData={paintData}
           setPaintData={setPaintData}
           selectedColor={selectedColor}

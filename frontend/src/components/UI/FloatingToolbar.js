@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import CompactToolPanel from '../Tools/CompactToolPanel';
+import ObjectPanel from '../Tools/ObjectPanel';
 import ImageUpload from '../Upload/ImageUpload';
 
 const FloatingToolbar = ({ 
@@ -21,6 +22,7 @@ const FloatingToolbar = ({
   onClearCanvas
 }) => {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const [isObjectsOpen, setIsObjectsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
 
   return (
@@ -34,7 +36,7 @@ const FloatingToolbar = ({
         gap: '10px',
         zIndex: 1000
       }}>
-        {/* 도구 버튼 */}
+        {/* 페인트 버튼 */}
         {step === 'edit' && (
           <button
             onClick={() => setIsToolsOpen(!isToolsOpen)}
@@ -54,6 +56,29 @@ const FloatingToolbar = ({
             }}
           >
             🎨
+          </button>
+        )}
+        
+        {/* 오브젝트 버튼 */}
+        {step === 'edit' && (
+          <button
+            onClick={() => setIsObjectsOpen(!isObjectsOpen)}
+            style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '25px',
+              border: 'none',
+              backgroundColor: isObjectsOpen ? '#FF9800' : 'white',
+              color: isObjectsOpen ? 'white' : '#333',
+              fontSize: '20px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            🏠
           </button>
         )}
 
@@ -151,8 +176,27 @@ const FloatingToolbar = ({
           />
         </div>
       )}
-
-
+      
+      {/* 오브젝트 패널 */}
+      {isObjectsOpen && step === 'edit' && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          left: '80px',
+          backgroundColor: 'white',
+          borderRadius: '10px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          zIndex: 999,
+          minWidth: '250px'
+        }}>
+          <ObjectPanel
+            currentTool={currentTool}
+            onToolChange={onToolChange}
+            selectedObjectType={selectedObjectType}
+            onObjectSelect={onObjectSelect}
+          />
+        </div>
+      )}
 
       {/* 배경 변경 버튼 */}
       {step === 'edit' && backgroundImage && (

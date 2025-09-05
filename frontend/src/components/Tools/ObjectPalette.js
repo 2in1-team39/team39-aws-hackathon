@@ -1,48 +1,117 @@
-import React, { useState } from 'react';
-import { OBJECT_TYPES } from '../../constants/objectTypes';
+import React, { useState, useEffect } from 'react';
 
 const ObjectPalette = ({ onObjectSelect }) => {
+  const [selectedCategory, setSelectedCategory] = useState('tree');
+  const [objects, setObjects] = useState([]);
   const [selectedObject, setSelectedObject] = useState(null);
 
-  const objects = [
-    { type: OBJECT_TYPES.TREE, name: '나무', color: '#228B22', icon: '🌳' },
-    { type: OBJECT_TYPES.BUILDING, name: '건물', color: '#8B4513', icon: '🏠' },
-    { type: OBJECT_TYPES.DECORATION, name: '장식', color: '#FF69B4', icon: '🌸' },
-    { type: OBJECT_TYPES.BRIDGE, name: '다리', color: '#A0522D', icon: '🌉' },
-    { type: OBJECT_TYPES.INCLINE, name: '경사로', color: '#696969', icon: '⛰️' }
-  ];
-
-  const handleObjectClick = (obj) => {
-    setSelectedObject(obj);
-    onObjectSelect(obj);
+  const categories = {
+    tree: { name: '나무', folder: 'tree' },
+    flower: { name: '꽃', folder: 'flower' },
+    construction: { name: '건설', folder: 'construction' },
+    structure: { name: '건물', folder: 'structure' }
   };
 
+  const objectFiles = {
+    tree: ['tree.png', 'tree-apple.png', 'tree-cherry.png', 'tree-orange.png', 'tree-peach.png', 'tree-pear.png', 'palm.png', 'pine.png'],
+    flower: ['redroses.png', 'whiteroses.png', 'yellowroses.png', 'pinktulips.png', 'redtulips.png', 'whitetulips.png', 'yellowtulips.png', 'orangetulips.png'],
+    construction: ['bridge-stone-horizontal.png', 'bridge-wood-horizontal.png', 'stairs-stone-up.png', 'stairs-wood-up.png'],
+    structure: ['airport.png', 'building-house.png', 'building-museum.png', 'building-nook.png', 'building-townhall.png']
+  };
+
+  useEffect(() => {
+    const categoryFiles = objectFiles[selectedCategory] || [];
+    const categoryObjects = categoryFiles.map(file => ({
+      id: file,
+      name: file.replace('.png', '').replace(/-/g, ' '),
+      image: `/item/${categories[selectedCategory].folder}/${file}`,
+      type: selectedCategory
+    }));
+    setObjects(categoryObjects);
+  }, [selectedCategory]);
+
   return (
-    <div style={{ 
-      padding: '10px', 
-      backgroundColor: '#f5f5f5', 
+    <div style={{
+      backgroundColor: 'white',
+      border: '1px solid #ddd',
       borderRadius: '8px',
+      padding: '15px',
       marginBottom: '10px'
     }}>
-      <h3>오브젝트</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-        {objects.map(obj => (
+      <h4 style={{ margin: '0 0 10px 0' }}>오브젝트</h4>
+      
+      {/* 카테고리 선택 */}
+      <div style={{
+        display: 'flex',
+        gap: '4px',
+        marginBottom: '10px',
+        flexWrap: 'wrap'
+      }}>
+        {Object.entries(categories).map(([key, category]) => (
           <button
-            key={obj.type}
-            onClick={() => handleObjectClick(obj)}
+            key={key}
+            onClick={() => {
+              setSelectedCategory(key);
+              setSelectedObject(null);
+            }}
             style={{
-              padding: '10px',
-              border: selectedObject?.type === obj.type ? '2px solid #4CAF50' : '1px solid #ccc',
-              backgroundColor: selectedObject?.type === obj.type ? '#e8f5e8' : 'white',
-              borderRadius: '5px',
+              padding: '4px 8px',
+              border: selectedCategory === key ? '2px solid #4CAF50' : '1px solid #ccc',
+              borderRadius: '4px',
+              backgroundColor: selectedCategory === key ? '#e8f5e8' : 'white',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
+              fontSize: '10px'
             }}
           >
-            <span style={{ fontSize: '16px' }}>{obj.icon}</span>
-            <span style={{ fontSize: '12px' }}>{obj.name}</span>
+            {category.name}
+          </button>
+        ))}
+      </div>
+      
+      {/* 오브젝트 그리드 */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: '6px',
+        maxHeight: '200px',
+        overflowY: 'auto'
+      }}>
+        {objects.map(obj => (
+          <button
+            key={obj.id}
+            onClick={() => {
+              setSelectedObject(obj.id);
+              onObjectSelect(obj);
+            }}
+            style={{
+              padding: '6px',
+              border: selectedObject === obj.id ? '2px solid #4CAF50' : '1px solid #ccc',
+              borderRadius: '4px',
+              backgroundColor: selectedObject === obj.id ? '#e8f5e8' : 'white',
+              cursor: 'pointer',
+              fontSize: '10px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '4px',
+              minHeight: '60px'
+            }}
+          >
+            <img 
+              src={obj.image} 
+              alt={obj.name}
+              style={{
+                width: '24px',
+                height: '24px',
+                objectFit: 'contain'
+              }}
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+            <span style={{ fontSize: '9px', textAlign: 'center' }}>
+              {obj.name.length > 8 ? obj.name.substring(0, 8) + '...' : obj.name}
+            </span>
           </button>
         ))}
       </div>

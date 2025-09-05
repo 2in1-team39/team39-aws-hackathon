@@ -32,13 +32,12 @@ const ImageUpload = ({ onImageUpload }) => {
       borderRadius: '8px',
       marginBottom: '10px'
     }}>
-      <h3>배경 이미지</h3>
       <div
         {...getRootProps()}
         style={{
           border: '2px dashed #ccc',
-          borderRadius: '8px',
-          padding: '20px',
+          borderRadius: '6px',
+          padding: '15px',
           textAlign: 'center',
           cursor: 'pointer',
           backgroundColor: isDragActive ? '#e8f5e8' : 'white'
@@ -49,15 +48,13 @@ const ImageUpload = ({ onImageUpload }) => {
           <p>이미지를 여기에 놓으세요...</p>
         ) : (
           <div>
-            <p>📷 섬 지도 이미지를 업로드하세요</p>
             <p style={{ fontSize: '12px', color: '#666' }}>
-              클릭하거나 드래그해서 업로드
-            </p>
+            📷 지도 스크린샷 업로드            </p>
           </div>
         )}
       </div>
     </div>
   );
 };
-
+    
 export default ImageUpload;

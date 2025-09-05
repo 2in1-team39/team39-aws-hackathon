@@ -34,11 +34,12 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
 
   useEffect(() => {
     const updateCanvasSize = () => {
-      const width = window.innerWidth - 40;
-      const height = window.innerHeight - 120;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
       setCanvasSize({ width, height });
       
-      const maxCellSize = Math.min(width / 7, height / 6) * 0.8;
+      const canvasWidth = width - 250;
+      const maxCellSize = Math.min(canvasWidth / 7, height / 6) * 0.8;
       const newGridWidth = maxCellSize * 7;
       const newGridHeight = maxCellSize * 6;
       setGridWidth(newGridWidth);
@@ -47,8 +48,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
       if (image) {
         const initialScale = Math.min(newGridWidth / image.width, newGridHeight / image.height);
         setImageTransform({
-          x: (width - image.width * initialScale) / 2,
-          y: (height - 120 - image.height * initialScale) / 2,
+          x: (canvasWidth - image.width * initialScale) / 2,
+          y: (height - image.height * initialScale) / 2,
           scaleX: initialScale,
           scaleY: initialScale
         });
@@ -64,11 +65,11 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
     const lines = [];
     const cellWidth = gridWidth / 7; // 7열
     const cellHeight = gridHeight / 6; // 6행
-    const gridX = (canvasSize.width - gridWidth) / 2;
-    const gridY = (canvasSize.height - 120 - gridHeight) / 2;
+    const gridX = (canvasSize.width - 250 - gridWidth) / 2;
+    const gridY = (canvasSize.height - gridHeight) / 2;
     
-    // 세로선 (7열)
-    for (let i = 0; i <= 7; i++) {
+    // 내부 세로선만 (테두리 제외)
+    for (let i = 1; i < 7; i++) {
       lines.push(
         <Line
           key={`v-${i}`}
@@ -79,8 +80,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
       );
     }
     
-    // 가로선 (6행)
-    for (let i = 0; i <= 6; i++) {
+    // 내부 가로선만 (테두리 제외)
+    for (let i = 1; i < 6; i++) {
       lines.push(
         <Line
           key={`h-${i}`}
@@ -113,8 +114,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
     const clampedScale = Math.max(0.1, Math.min(5, newScale));
     
     // 가운데 기준 확대/축소
-    const centerX = canvasSize.width / 2;
-    const centerY = (canvasSize.height - 120) / 2;
+    const centerX = (canvasSize.width - 250) / 2;
+    const centerY = canvasSize.height / 2;
     
     const scaleRatio = clampedScale / imageTransform.scaleX;
     const newX = centerX - (centerX - imageTransform.x) * scaleRatio;
@@ -131,8 +132,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
   const handleScaleChange = (newScale) => {
     const clampedScale = Math.max(0.1, Math.min(5, newScale));
     
-    const centerX = canvasSize.width / 2;
-    const centerY = (canvasSize.height - 120) / 2;
+    const centerX = (canvasSize.width - 250) / 2;
+    const centerY = canvasSize.height / 2;
     
     const scaleRatio = clampedScale / imageTransform.scaleX;
     const newX = centerX - (centerX - imageTransform.x) * scaleRatio;
@@ -154,8 +155,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
     ctx.imageSmoothingEnabled = false;
     
     // 격자 영역 계산
-    const gridX = (canvasSize.width - gridWidth) / 2;
-    const gridY = (canvasSize.height - 120 - gridHeight) / 2;
+    const gridX = (canvasSize.width - 250 - gridWidth) / 2;
+    const gridY = (canvasSize.height - gridHeight) / 2;
     
     // 이미지에서 격자 영역에 해당하는 부분 추출
     const sourceX = (gridX - imageTransform.x) / imageTransform.scaleX;
@@ -183,33 +184,37 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
       left: 0,
       width: '100vw',
       height: '100vh',
-      backgroundColor: 'rgba(0,0,0,0.8)',
+      backgroundColor: '#f5f5f5',
       display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
       zIndex: 2000
     }}>
+      {/* 사이드바 */}
       <div style={{
+        width: '250px',
         backgroundColor: 'white',
         padding: '20px',
-        borderRadius: '8px',
-        textAlign: 'center'
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '15px'
       }}>
-        <h2>지도 조정</h2>
-        <p>7×6 격자에 맞춰 지도를 이동/확대/축소하세요</p>
-        <div style={{ fontSize: '12px', color: '#666', marginBottom: '10px' }}>
-          • 드래그/화살표: 지도 이동 | 마우스 휠: 확대/축소
+        <h3 style={{ margin: 0 }}>지도 스크린샷 조정</h3>
+        
+        <div style={{ marginBottom: '15px' }}>
+          <div style={{ fontSize: '12px', color: '#333', lineHeight: '1.4' }}>
+            업로드된 이미지를 확대, 이동시켜 지도 스크린샷에 표시된 하얀색 점선과 초록색 격자선이 일치되도록 맞추세요.
+          </div>
         </div>
         
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          gap: '10px', 
-          marginBottom: '10px',
-          justifyContent: 'center'
-        }}>
-          <label style={{ fontSize: '14px' }}>확대 비율:</label>
+        <div>
+          <h4 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>조작 방법</h4>
+          <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
+            • 화살표 키: 미세 조정<br/>
+            • 마우스 휠: 확대/축소
+          </div>
+        </div>
+        
+        <div>
+          <label style={{ fontSize: '14px', display: 'block', marginBottom: '5px' }}>확대 비율</label>
           <input
             type="number"
             min="0.1"
@@ -218,19 +223,63 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
             value={Math.round(imageTransform.scaleX * 100) / 100}
             onChange={(e) => handleScaleChange(parseFloat(e.target.value) || 1)}
             style={{
-              width: '80px',
-              padding: '4px 8px',
+              width: '100%',
+              padding: '8px',
               border: '1px solid #ccc',
-              borderRadius: '4px',
-              textAlign: 'center'
+              borderRadius: '4px'
             }}
           />
-          <span style={{ fontSize: '12px', color: '#666' }}>({Math.round(imageTransform.scaleX * 100)}%)</span>
+          <div style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+            {Math.round(imageTransform.scaleX * 100)}%
+          </div>
         </div>
         
+        <button
+          onClick={handleConfirm}
+          style={{
+            padding: '12px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            marginTop: 'auto'
+          }}
+        >
+          확인
+        </button>
+      </div>
+      
+      {/* 메인 캔버스 영역 */}
+      <div style={{ flex: 1, position: 'relative' }}>
+        {/* X 버튼 */}
+        <button
+          onClick={onCancel}
+          style={{
+            position: 'absolute',
+            top: '20px',
+            right: '20px',
+            width: '40px',
+            height: '40px',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50%',
+            cursor: 'pointer',
+            fontSize: '20px',
+            zIndex: 1000,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+        >
+          ×
+        </button>
+        
         <Stage
-          width={canvasSize.width}
-          height={canvasSize.height - 120}
+          width={canvasSize.width - 250}
+          height={canvasSize.height}
           ref={stageRef}
           onWheel={handleWheel}
         >
@@ -245,46 +294,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
               onDragMove={handleImageDrag}
             />
             {drawGrid()}
-            <Rect
-              x={(canvasSize.width - gridWidth) / 2}
-              y={(canvasSize.height - 120 - gridHeight) / 2}
-              width={gridWidth}
-              height={gridHeight}
-              stroke="#4CAF50"
-              strokeWidth={3}
-              fill="rgba(76, 175, 80, 0.1)"
-            />
           </Layer>
         </Stage>
-        
-        <div style={{ marginTop: '20px', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          <button
-            onClick={handleConfirm}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
-          >
-            확인
-          </button>
-          <button
-            onClick={onCancel}
-            style={{
-              padding: '10px 20px',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              cursor: 'pointer'
-            }}
-          >
-            취소
-          </button>
-        </div>
       </div>
     </div>
   );

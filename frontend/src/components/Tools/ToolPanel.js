@@ -6,7 +6,7 @@ const ToolPanel = ({ currentTool, onToolChange }) => {
     { id: TOOLS.SELECT, name: '선택', icon: '🖱️' },
     { id: TOOLS.PAINT, name: '페인트', icon: '🎨' },
     { id: TOOLS.OBJECT, name: '오브젝트', icon: '🏠' },
-    { id: TOOLS.ERASE, name: '지우개', icon: '🧽' }
+    { id: TOOLS.ERASER, name: '지우개', icon: '🧽' }
   ];
 
   return (

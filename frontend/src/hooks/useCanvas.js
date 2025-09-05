@@ -6,6 +6,16 @@ export const useCanvas = () => {
   const [backgroundImage, setBackgroundImage] = useState(null);
   const [objects, setObjects] = useState([]);
   const [paintData, setPaintData] = useState({});
+  const [selectedColor, setSelectedColor] = useState(null);
+  const [brushSize, setBrushSize] = useState(1);
+  const [isDragging, setIsDragging] = useState(false);
+  const [stagePos, setStagePos] = useState({ x: 0, y: 0 });
+  const [isSpacePressed, setIsSpacePressed] = useState(false);
+  const [isShiftPressed, setIsShiftPressed] = useState(false);
+  const [lastPaintPos, setLastPaintPos] = useState(null);
+  const [lastPointerPos, setLastPointerPos] = useState(null);
+  const [isRightPressed, setIsRightPressed] = useState(false);
+  const [draggedObject, setDraggedObject] = useState(null);
   const [zoomLevel, setZoomLevel] = useState(1);
   const [step, setStep] = useState('upload'); // 'upload', 'crop', 'edit'
   const [uploadedImage, setUploadedImage] = useState(null);
@@ -42,6 +52,26 @@ export const useCanvas = () => {
     updateObject,
     paintData,
     setPaintData,
+    selectedColor,
+    setSelectedColor,
+    brushSize,
+    setBrushSize,
+    isDragging,
+    setIsDragging,
+    stagePos,
+    setStagePos,
+    isSpacePressed,
+    setIsSpacePressed,
+    isShiftPressed,
+    setIsShiftPressed,
+    lastPaintPos,
+    setLastPaintPos,
+    lastPointerPos,
+    setLastPointerPos,
+    isRightPressed,
+    setIsRightPressed,
+    draggedObject,
+    setDraggedObject,
     zoomLevel,
     setZoomLevel,
     step,

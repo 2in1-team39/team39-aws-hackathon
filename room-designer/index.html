@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏠 모동숲 3D 룸 디자이너</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; overflow: hidden; }
+        #container { position: relative; width: 100vw; height: 100vh; }
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 100; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; }
+        #furniture-panel { position: absolute; top: 20px; right: 20px; z-index: 100; background: rgba(255,255,255,0.9); padding: 20px; border-radius: 10px; width: 200px; }
+        .furniture-item { padding: 10px; margin: 5px 0; background: #f0f0f0; border-radius: 5px; cursor: pointer; text-align: center; }
+        .furniture-item:hover { background: #e0e0e0; }
+        #info { position: absolute; bottom: 20px; left: 20px; z-index: 100; color: white; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; }
+        button { padding: 8px 12px; margin: 5px; border: none; border-radius: 5px; cursor: pointer; background: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="ui">
+            <h3>🏠 룸 디자이너</h3>
+            <button onclick="clearRoom()">🗑️ 초기화</button>
+            <button onclick="saveRoom()">💾 저장</button>
+            <button onclick="changeWallColor()">🎨 벽 색상</button>
+        </div>
+        
+        <div id="furniture-panel">
+            <h4>가구 목록</h4>
+            <div class="furniture-item" onclick="addFurniture('bed')">🛏️ 침대</div>
+            <div class="furniture-item" onclick="addFurniture('table')">🪑 테이블</div>
+            <div class="furniture-item" onclick="addFurniture('chair')">🪑 의자</div>
+            <div class="furniture-item" onclick="addFurniture('plant')">🪴 화분</div>
+            <div class="furniture-item" onclick="addFurniture('lamp')">💡 램프</div>
+            <div class="furniture-item" onclick="addFurniture('bookshelf')">📚 책장</div>
+        </div>
+        
+        <div id="info">
+            마우스: 회전 | 휠: 줌 | 가구 클릭: 선택
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let room = { furniture: [] };
+        let selectedObject = null;
+
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(5, 5, 5);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(10, 10, 5);
+            scene.add(directionalLight);
+
+            createRoom();
+        }
+
+        function createRoom() {
+            // 바닥
+            const floor = new THREE.Mesh(
+                new THREE.PlaneGeometry(8, 8),
+                new THREE.MeshLambertMaterial({ color: 0xDEB887 })
+            );
+            floor.rotation.x = -Math.PI / 2;
+            scene.add(floor);
+
+            // 뒷벽
+            const backWall = new THREE.Mesh(
+                new THREE.PlaneGeometry(8, 4),
+                new THREE.MeshLambertMaterial({ color: 0xF5F5DC })
+            );
+            backWall.position.set(0, 2, -4);
+            scene.add(backWall);
+
+            // 격자
+            const grid = new THREE.GridHelper(8, 8);
+            grid.position.y = 0.01;
+            scene.add(grid);
+        }
+
+        function addFurniture(type) {
+            let geometry, material;
+
+            switch(type) {
+                case 'bed':
+                    geometry = new THREE.BoxGeometry(2, 0.5, 1);
+                    material = new THREE.MeshLambertMaterial({ color: 0xFF69B4 });
+                    break;
+                case 'table':
+                    geometry = new THREE.BoxGeometry(1, 0.8, 1);
+                    material = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    break;
+                case 'chair':
+                    geometry = new THREE.BoxGeometry(0.5, 1, 0.5);
+                    material = new THREE.MeshLambertMaterial({ color: 0x654321 });
+                    break;
+                case 'plant':
+                    geometry = new THREE.ConeGeometry(0.3, 1, 8);
+                    material = new THREE.MeshLambertMaterial({ color: 0x228B22 });
+                    break;
+                case 'lamp':
+                    geometry = new THREE.CylinderGeometry(0.2, 0.2, 1.5);
+                    material = new THREE.MeshLambertMaterial({ color: 0xFFD700 });
+                    break;
+                case 'bookshelf':
+                    geometry = new THREE.BoxGeometry(1, 2, 0.3);
+                    material = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+                    break;
+            }
+
+            const furniture = new THREE.Mesh(geometry, material);
+            furniture.position.set(
+                Math.random() * 4 - 2,
+                geometry.parameters.height / 2,
+                Math.random() * 4 - 2
+            );
+            furniture.userData = { type: type };
+
+            scene.add(furniture);
+            room.furniture.push(furniture);
+        }
+
+        function clearRoom() {
+            room.furniture.forEach(f => scene.remove(f));
+            room.furniture = [];
+        }
+
+        function saveRoom() {
+            const data = JSON.stringify({
+                furniture: room.furniture.map(f => ({
+                    type: f.userData.type,
+                    position: f.position,
+                    rotation: f.rotation
+                }))
+            });
+            
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'room.json';
+            link.click();
+        }
+
+        function changeWallColor() {
+            const colors = [0xF5F5DC, 0xFFB6C1, 0x98FB98, 0x87CEFA];
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            scene.children.forEach(child => {
+                if (child.geometry && child.geometry.type === 'PlaneGeometry' && child.position.z < 0) {
+                    child.material.color.setHex(color);
+                }
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>

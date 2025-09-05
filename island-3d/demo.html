@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>🎮 Nookipedia API 데모</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f0f8ff; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .section { background: white; padding: 20px; margin: 20px 0; border-radius: 10px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+        .item { padding: 15px; background: #f9f9f9; border-radius: 8px; text-align: center; }
+        .item img { width: 100%; max-width: 150px; height: auto; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        .loading { color: #666; font-style: italic; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏝️ Nookipedia API 데모</h1>
+        
+        <div class="section">
+            <h2>👥 주민들</h2>
+            <button onclick="loadVillagers()">주민 데이터 로드</button>
+            <div id="villagers" class="grid"></div>
+        </div>
+        
+        <div class="section">
+            <h2>🪑 가구</h2>
+            <button onclick="loadFurniture()">가구 데이터 로드</button>
+            <div id="furniture" class="grid"></div>
+        </div>
+        
+        <div class="section">
+            <h2>🐟 물고기</h2>
+            <button onclick="loadFish()">물고기 데이터 로드</button>
+            <div id="fish" class="grid"></div>
+        </div>
+    </div>
+
+    <script>
+        // API 키 없이 테스트용 (실제로는 API 키 필요)
+        const API_BASE = 'https://api.nookipedia.com';
+        
+        async function loadVillagers() {
+            const container = document.getElementById('villagers');
+            container.innerHTML = '<div class="loading">주민 데이터 로딩 중...</div>';
+            
+            try {
+                // 실제 API 호출 (API 키 필요)
+                // const response = await fetch(`${API_BASE}/villagers?limit=12`);
+                // const villagers = await response.json();
+                
+                // 데모용 샘플 데이터
+                const villagers = [
+                    { name: 'Tom Nook', species: 'Raccoon dog', image_url: 'https://dodo.ac/np/images/thumb/6/6b/Tom_Nook_NH.png/150px-Tom_Nook_NH.png' },
+                    { name: 'Isabelle', species: 'Dog', image_url: 'https://dodo.ac/np/images/thumb/c/c6/Isabelle_NH.png/150px-Isabelle_NH.png' },
+                    { name: 'K.K. Slider', species: 'Dog', image_url: 'https://dodo.ac/np/images/thumb/7/7b/K.K._Slider_NH.png/150px-K.K._Slider_NH.png' }
+                ];
+                
+                container.innerHTML = villagers.map(villager => `
+                    <div class="item">
+                        <img src="${villager.image_url}" alt="${villager.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTUwIiBoZWlnaHQ9IjE1MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg=='">
+                        <h4>${villager.name}</h4>
+                        <p>${villager.species}</p>
+                        <button onclick="addToIsland('villager', '${villager.name}')">섬에 추가</button>
+                    </div>
+                `).join('');
+                
+            } catch (error) {
+                container.innerHTML = '<div style="color: red;">데이터 로드 실패: ' + error.message + '</div>';
+            }
+        }
+        
+        async function loadFurniture() {
+            const container = document.getElementById('furniture');
+            container.innerHTML = '<div class="loading">가구 데이터 로딩 중...</div>';
+            
+            // 데모용 샘플 데이터
+            const furniture = [
+                { name: 'Wooden Chair', category: 'Housewares', image_url: 'https://dodo.ac/np/images/thumb/4/42/Wooden_Chair_%28Light_Wood%29_NH_Icon.png/64px-Wooden_Chair_%28Light_Wood%29_NH_Icon.png' },
+                { name: 'Wooden Table', category: 'Housewares', image_url: 'https://dodo.ac/np/images/thumb/f/f8/Wooden_Table_%28Light_Wood%29_NH_Icon.png/64px-Wooden_Table_%28Light_Wood%29_NH_Icon.png' },
+                { name: 'Campfire', category: 'Housewares', image_url: 'https://dodo.ac/np/images/thumb/6/69/Campfire_NH_Icon.png/64px-Campfire_NH_Icon.png' }
+            ];
+            
+            container.innerHTML = furniture.map(item => `
+                <div class="item">
+                    <img src="${item.image_url}" alt="${item.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='">
+                    <h4>${item.name}</h4>
+                    <p>${item.category}</p>
+                    <button onclick="addToIsland('furniture', '${item.name}')">섬에 추가</button>
+                </div>
+            `).join('');
+        }
+        
+        async function loadFish() {
+            const container = document.getElementById('fish');
+            container.innerHTML = '<div class="loading">물고기 데이터 로딩 중...</div>';
+            
+            // 데모용 샘플 데이터
+            const fish = [
+                { name: 'Sea Bass', price: 400, image_url: 'https://dodo.ac/np/images/thumb/8/87/Sea_Bass_NH_Icon.png/64px-Sea_Bass_NH_Icon.png' },
+                { name: 'Red Snapper', price: 3000, image_url: 'https://dodo.ac/np/images/thumb/4/47/Red_Snapper_NH_Icon.png/64px-Red_Snapper_NH_Icon.png' },
+                { name: 'Coelacanth', price: 15000, image_url: 'https://dodo.ac/np/images/thumb/1/11/Coelacanth_NH_Icon.png/64px-Coelacanth_NH_Icon.png' }
+            ];
+            
+            container.innerHTML = fish.map(fishItem => `
+                <div class="item">
+                    <img src="${fishItem.image_url}" alt="${fishItem.name}" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4='">
+                    <h4>${fishItem.name}</h4>
+                    <p>${fishItem.price} 벨</p>
+                    <button onclick="addToIsland('fish', '${fishItem.name}')">섬에 추가</button>
+                </div>
+            `).join('');
+        }
+        
+        function addToIsland(type, name) {
+            alert(`${name}을(를) 섬에 추가했습니다! (3D 섬 디자이너에서 구현 예정)`);
+        }
+    </script>
+</body>
+</html>

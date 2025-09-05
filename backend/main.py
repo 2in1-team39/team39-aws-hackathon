@@ -1,17 +1,23 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
+from routes.design_routes import router as design_router
 import json
 import os
 from datetime import datetime
 from typing import List, Dict, Any
 
 app = FastAPI(title="Animal Crossing Island Designer API")
+app.include_router(design_router)
+
+# 정적 파일 서빙
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # CORS 설정
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],  # 개발용으로 모든 origin 허용
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -23,7 +29,17 @@ os.makedirs(PROJECTS_DIR, exist_ok=True)
 
 @app.get("/")
 async def root():
-    return {"message": "Animal Crossing Island Designer API"}
+    return {"message": "Animal Crossing Island Designer API", "design_app": "/design"}
+
+@app.get("/design")
+async def design_app():
+    """마이디자인 앱 페이지"""
+    from fastapi.responses import HTMLResponse
+    
+    with open("static/index.html", "r", encoding="utf-8") as f:
+        html_content = f.read()
+    
+    return HTMLResponse(content=html_content)
 
 @app.post("/api/projects/save")
 async def save_project(project_data: Dict[str, Any]):

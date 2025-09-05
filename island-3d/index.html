@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏝️ 모동숲 3D 섬 디자이너</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <style>
+        body { margin: 0; font-family: Arial, sans-serif; overflow: hidden; }
+        #container { position: relative; width: 100vw; height: 100vh; }
+        #ui { position: absolute; top: 20px; left: 20px; z-index: 100; background: rgba(255,255,255,0.95); padding: 20px; border-radius: 15px; }
+        #tools { position: absolute; top: 20px; right: 20px; z-index: 100; background: rgba(255,255,255,0.95); padding: 20px; border-radius: 15px; width: 250px; }
+        .tool-category { margin-bottom: 15px; }
+        .tool-category h4 { margin: 0 0 10px 0; color: #333; border-bottom: 2px solid #4CAF50; padding-bottom: 5px; }
+        .tool-item { padding: 12px; margin: 5px 0; background: #f0f0f0; border-radius: 8px; cursor: pointer; text-align: center; transition: all 0.3s; }
+        .tool-item:hover { background: #e0e0e0; }
+        .tool-item.active { background: #4CAF50; color: white; }
+        #info { position: absolute; bottom: 20px; left: 20px; z-index: 100; color: white; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; }
+        button { padding: 10px 15px; margin: 5px; border: none; border-radius: 8px; cursor: pointer; background: #4CAF50; color: white; }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="ui">
+            <h2>🏝️ 섬 디자이너</h2>
+            <button onclick="clearIsland()">🗑️ 초기화</button>
+            <button onclick="saveIsland()">💾 저장</button>
+            <button onclick="toggleWireframe()">🔍 와이어프레임</button>
+        </div>
+        
+        <div id="tools">
+            <div class="tool-category">
+                <h4>🌍 지형 도구</h4>
+                <div class="tool-item" onclick="selectTool('terrain', 'grass')">🌱 잔디</div>
+                <div class="tool-item" onclick="selectTool('terrain', 'sand')">🏖️ 모래</div>
+                <div class="tool-item" onclick="selectTool('terrain', 'stone')">🪨 돌</div>
+                <div class="tool-item" onclick="selectTool('terrain', 'cliff')">⛰️ 절벽 올리기</div>
+                <div class="tool-item" onclick="selectTool('terrain', 'lower')">⬇️ 절벽 내리기</div>
+            </div>
+            
+            <div class="tool-category">
+                <h4>💧 물 & 길</h4>
+                <div class="tool-item" onclick="selectTool('water', 'river')">🌊 강</div>
+                <div class="tool-item" onclick="selectTool('path', 'dirt')">🛤️ 흙길</div>
+                <div class="tool-item" onclick="selectTool('path', 'stone')">🪨 돌길</div>
+            </div>
+            
+            <div class="tool-category">
+                <h4>🏠 건물 & 오브젝트</h4>
+                <div class="tool-item" onclick="selectTool('building', 'house')">🏠 집</div>
+                <div class="tool-item" onclick="selectTool('building', 'shop')">🏪 상점</div>
+                <div class="tool-item" onclick="selectTool('nature', 'tree')">🌳 나무</div>
+                <div class="tool-item" onclick="selectTool('nature', 'flower')">🌸 꽃</div>
+                <div class="tool-item" onclick="selectTool('nature', 'rock')">🪨 바위</div>
+            </div>
+            
+            <div class="tool-category">
+                <h4>🔧 기타</h4>
+                <div class="tool-item" onclick="selectTool('utility', 'bridge')">🌉 다리</div>
+                <div class="tool-item" onclick="selectTool('utility', 'erase')">🗑️ 지우개</div>
+            </div>
+        </div>
+        
+        <div id="info">
+            <strong>조작법:</strong><br>
+            마우스: 회전 | 휠: 줌 | 클릭: 배치/편집<br>
+            <span id="current-tool">현재 도구: 없음</span>
+        </div>
+    </div>
+
+    <script>
+        let scene, camera, renderer, controls;
+        let island = { terrain: [], objects: [] };
+        let currentTool = { type: null, subtype: null };
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
+        let islandSize = 20;
+        let terrainGrid = [];
+        let heightMap = [];
+
+        init();
+        animate();
+
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87CEEB);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(25, 20, 25);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+            directionalLight.position.set(50, 50, 25);
+            directionalLight.castShadow = true;
+            scene.add(directionalLight);
+
+            createOcean();
+            createBaseIsland();
+
+            renderer.domElement.addEventListener('click', onMouseClick);
+        }
+
+        function createOcean() {
+            const ocean = new THREE.Mesh(
+                new THREE.PlaneGeometry(200, 200),
+                new THREE.MeshLambertMaterial({ color: 0x006994, transparent: true, opacity: 0.8 })
+            );
+            ocean.rotation.x = -Math.PI / 2;
+            ocean.position.y = -0.5;
+            scene.add(ocean);
+        }
+
+        function createBaseIsland() {
+            for (let x = 0; x < islandSize; x++) {
+                heightMap[x] = [];
+                terrainGrid[x] = [];
+                for (let z = 0; z < islandSize; z++) {
+                    heightMap[x][z] = 0;
+                    createTerrainTile(x, z, 'grass', 0);
+                }
+            }
+        }
+
+        function createTerrainTile(x, z, type, height) {
+            if (terrainGrid[x] && terrainGrid[x][z]) {
+                scene.remove(terrainGrid[x][z]);
+            }
+
+            let color;
+            switch(type) {
+                case 'grass': color = 0x4a7c59; break;
+                case 'sand': color = 0xc2b280; break;
+                case 'stone': color = 0x8c8c8c; break;
+                case 'water': color = 0x4a90e2; break;
+                case 'dirt': color = 0x8b4513; break;
+                default: color = 0x4a7c59;
+            }
+
+            const tile = new THREE.Mesh(
+                new THREE.BoxGeometry(1, height + 0.1, 1),
+                new THREE.MeshLambertMaterial({ color: color })
+            );
+            
+            tile.position.set(x - islandSize/2, height/2, z - islandSize/2);
+            tile.castShadow = true;
+            tile.receiveShadow = true;
+            tile.userData = { type: type, x: x, z: z, height: height };
+
+            scene.add(tile);
+            terrainGrid[x][z] = tile;
+            heightMap[x][z] = height;
+        }
+
+        function addObject(x, z, type) {
+            const height = heightMap[x][z];
+
+            switch(type) {
+                case 'tree':
+                    const trunk = new THREE.Mesh(
+                        new THREE.CylinderGeometry(0.1, 0.15, 1),
+                        new THREE.MeshLambertMaterial({ color: 0x8b4513 })
+                    );
+                    trunk.position.set(x - islandSize/2, height + 0.5, z - islandSize/2);
+                    
+                    const leaves = new THREE.Mesh(
+                        new THREE.SphereGeometry(0.8),
+                        new THREE.MeshLambertMaterial({ color: 0x228b22 })
+                    );
+                    leaves.position.set(x - islandSize/2, height + 1.3, z - islandSize/2);
+                    
+                    scene.add(trunk);
+                    scene.add(leaves);
+                    island.objects.push(trunk, leaves);
+                    break;
+
+                case 'house':
+                    const house = new THREE.Mesh(
+                        new THREE.BoxGeometry(2, 1.5, 2),
+                        new THREE.MeshLambertMaterial({ color: 0xdeb887 })
+                    );
+                    house.position.set(x - islandSize/2, height + 0.75, z - islandSize/2);
+                    
+                    const roof = new THREE.Mesh(
+                        new THREE.ConeGeometry(1.5, 1, 4),
+                        new THREE.MeshLambertMaterial({ color: 0x8b0000 })
+                    );
+                    roof.position.set(x - islandSize/2, height + 2, z - islandSize/2);
+                    roof.rotation.y = Math.PI / 4;
+                    
+                    house.castShadow = true;
+                    roof.castShadow = true;
+                    
+                    scene.add(house);
+                    scene.add(roof);
+                    island.objects.push(house, roof);
+                    break;
+
+                case 'rock':
+                    const rock = new THREE.Mesh(
+                        new THREE.DodecahedronGeometry(0.3),
+                        new THREE.MeshLambertMaterial({ color: 0x696969 })
+                    );
+                    rock.position.set(x - islandSize/2, height + 0.3, z - islandSize/2);
+                    rock.castShadow = true;
+                    scene.add(rock);
+                    island.objects.push(rock);
+                    break;
+
+                case 'flower':
+                    const flower = new THREE.Mesh(
+                        new THREE.ConeGeometry(0.1, 0.3, 6),
+                        new THREE.MeshLambertMaterial({ color: 0xff69b4 })
+                    );
+                    flower.position.set(x - islandSize/2, height + 0.15, z - islandSize/2);
+                    scene.add(flower);
+                    island.objects.push(flower);
+                    break;
+            }
+        }
+
+        function onMouseClick(event) {
+            if (!currentTool.type) return;
+
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(scene.children);
+
+            if (intersects.length > 0) {
+                const point = intersects[0].point;
+                const x = Math.round(point.x + islandSize/2);
+                const z = Math.round(point.z + islandSize/2);
+
+                if (x >= 0 && x < islandSize && z >= 0 && z < islandSize) {
+                    handleToolAction(x, z);
+                }
+            }
+        }
+
+        function handleToolAction(x, z) {
+            switch(currentTool.type) {
+                case 'terrain':
+                    if (currentTool.subtype === 'cliff') {
+                        createTerrainTile(x, z, 'grass', heightMap[x][z] + 1);
+                    } else if (currentTool.subtype === 'lower') {
+                        createTerrainTile(x, z, 'grass', Math.max(0, heightMap[x][z] - 1));
+                    } else {
+                        createTerrainTile(x, z, currentTool.subtype, heightMap[x][z]);
+                    }
+                    break;
+
+                case 'water':
+                    createTerrainTile(x, z, 'water', heightMap[x][z]);
+                    break;
+
+                case 'path':
+                    createTerrainTile(x, z, currentTool.subtype, heightMap[x][z]);
+                    break;
+
+                case 'building':
+                case 'nature':
+                    addObject(x, z, currentTool.subtype);
+                    break;
+
+                case 'utility':
+                    if (currentTool.subtype === 'erase') {
+                        createTerrainTile(x, z, 'grass', heightMap[x][z]);
+                    }
+                    break;
+            }
+        }
+
+        function selectTool(type, subtype) {
+            currentTool = { type: type, subtype: subtype };
+            
+            document.querySelectorAll('.tool-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            document.getElementById('current-tool').textContent = `현재 도구: ${event.target.textContent}`;
+        }
+
+        function clearIsland() {
+            island.objects.forEach(obj => scene.remove(obj));
+            island.objects = [];
+            createBaseIsland();
+        }
+
+        function saveIsland() {
+            const islandData = {
+                terrain: terrainGrid.map(row => row.map(tile => tile ? tile.userData : null)),
+                heightMap: heightMap,
+                timestamp: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(islandData);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'island-design.json';
+            link.click();
+        }
+
+        function toggleWireframe() {
+            scene.children.forEach(child => {
+                if (child.material) {
+                    child.material.wireframe = !child.material.wireframe;
+                }
+            });
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>

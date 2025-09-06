@@ -18,6 +18,8 @@ export const PAINT_COLORS = {
 
 export const BRUSH_TYPES = {
   SQUARE: 'square',
+  SQUARE_2X2: 'square-2x2', // 2x2 사각형
+  DIAMOND_2X2: 'diamond-2x2', // 2x2 다이아몬드
   TRIANGLE_TL: 'triangle-tl', // 왼쪽 위 삼각형
   TRIANGLE_TR: 'triangle-tr', // 오른쪽 위 삼각형
   TRIANGLE_BL: 'triangle-bl', // 왼쪽 아래 삼각형

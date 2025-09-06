@@ -9,7 +9,9 @@ import {
   createTrianglePath,
   paintTriangleCell,
   paintSquareCell,
-  erasePaintCell
+  erasePaintCell,
+  paint2x2Cell,
+  getDiamond2x2Triangles
 } from '../../utils/trianglePainting';
 
 const ObjectImage = ({ x, y, width, height, imageSrc }) => {
@@ -315,6 +317,61 @@ const IslandCanvas = ({
       cellsToPaint.push({ x: gridX, y: gridY, imageX, imageY });
     }
     
+    // 다이아몬드 직선 그리기의 끝점 처리 (2x2 삼각형 다이아몬드용)
+    if (isLine && lastPaintPos && currentBrushType === BRUSH_TYPES.DIAMOND_2X2 && selectedColor) {
+      const dx = gridX - lastPaintPos.x;
+      const dy = gridY - lastPaintPos.y;
+      
+      // 방향에 따른 끝점 삼각형 추가
+      if (Math.abs(dx) > Math.abs(dy)) {
+        // 수평 방향
+        if (dx > 0) {
+          // 오른쪽으로 그리기 - 시작점 왼쪽에 삼각형, 끝점 오른쪽에 삼각형
+          const startX = lastPaintPos.x - 1;
+          const endX = gridX + 1;
+          if (startX >= 0) {
+            newPaintData = paintTriangleCell(newPaintData, startX, lastPaintPos.y, BRUSH_TYPES.TRIANGLE_TR, selectedColor.color);
+          }
+          if (endX < GRID_CONFIG.COLS) {
+            newPaintData = paintTriangleCell(newPaintData, endX, gridY, BRUSH_TYPES.TRIANGLE_TL, selectedColor.color);
+          }
+        } else {
+          // 왼쪽으로 그리기
+          const startX = lastPaintPos.x + 1;
+          const endX = gridX - 1;
+          if (startX < GRID_CONFIG.COLS) {
+            newPaintData = paintTriangleCell(newPaintData, startX, lastPaintPos.y, BRUSH_TYPES.TRIANGLE_TL, selectedColor.color);
+          }
+          if (endX >= 0) {
+            newPaintData = paintTriangleCell(newPaintData, endX, gridY, BRUSH_TYPES.TRIANGLE_TR, selectedColor.color);
+          }
+        }
+      } else {
+        // 수직 방향
+        if (dy > 0) {
+          // 아래쪽으로 그리기
+          const startY = lastPaintPos.y - 1;
+          const endY = gridY + 1;
+          if (startY >= 0) {
+            newPaintData = paintTriangleCell(newPaintData, lastPaintPos.x, startY, BRUSH_TYPES.TRIANGLE_BR, selectedColor.color);
+          }
+          if (endY < GRID_CONFIG.ROWS) {
+            newPaintData = paintTriangleCell(newPaintData, gridX, endY, BRUSH_TYPES.TRIANGLE_TL, selectedColor.color);
+          }
+        } else {
+          // 위쪽으로 그리기
+          const startY = lastPaintPos.y + 1;
+          const endY = gridY - 1;
+          if (startY < GRID_CONFIG.ROWS) {
+            newPaintData = paintTriangleCell(newPaintData, lastPaintPos.x, startY, BRUSH_TYPES.TRIANGLE_TL, selectedColor.color);
+          }
+          if (endY >= 0) {
+            newPaintData = paintTriangleCell(newPaintData, gridX, endY, BRUSH_TYPES.TRIANGLE_BR, selectedColor.color);
+          }
+        }
+      }
+    }
+
     cellsToPaint.forEach(({ x: centerX, y: centerY, imageX: cellImageX, imageY: cellImageY }) => {
       const offset = Math.floor(brushSize / 2);
       for (let dx = 0; dx < brushSize; dx++) {
@@ -325,18 +382,26 @@ const IslandCanvas = ({
           if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
             if (currentTool === TOOLS.PAINT && selectedColor) {
               // 브러시 타입에 따라 페인팅 방식 결정
-              let triangleType = currentBrushType;
-              
-              if (triangleType === BRUSH_TYPES.AUTO) {
-                // 서브그리드 위치 계산
-                const { subX, subY } = getSubGridPosition(cellImageX, cellImageY, cellSize, zoomLevel);
-                triangleType = getTriangleTypeFromPosition(subX, subY);
-              }
-              
-              if (triangleType === BRUSH_TYPES.SQUARE) {
-                newPaintData = paintSquareCell(newPaintData, x, y, selectedColor.color);
+              if (currentBrushType === BRUSH_TYPES.SQUARE_2X2 || currentBrushType === BRUSH_TYPES.DIAMOND_2X2) {
+                // 2x2 브러시는 한 번만 적용 (중복 방지)
+                if (x === centerX && y === centerY) {
+                  newPaintData = paint2x2Cell(newPaintData, x, y, currentBrushType, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
+                }
               } else {
-                newPaintData = paintTriangleCell(newPaintData, x, y, triangleType, selectedColor.color);
+                // 기존 1x1 브러시들
+                let triangleType = currentBrushType;
+                
+                if (triangleType === BRUSH_TYPES.AUTO) {
+                  // 서브그리드 위치 계산
+                  const { subX, subY } = getSubGridPosition(cellImageX, cellImageY, cellSize, zoomLevel);
+                  triangleType = getTriangleTypeFromPosition(subX, subY);
+                }
+                
+                if (triangleType === BRUSH_TYPES.SQUARE) {
+                  newPaintData = paintSquareCell(newPaintData, x, y, selectedColor.color);
+                } else {
+                  newPaintData = paintTriangleCell(newPaintData, x, y, triangleType, selectedColor.color);
+                }
               }
             } else if (currentTool === TOOLS.ERASER) {
               newPaintData = erasePaintCell(newPaintData, x, y);
@@ -631,6 +696,7 @@ const IslandCanvas = ({
                 />
               ));
             }
+
 
             return null;
           })}

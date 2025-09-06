@@ -5,7 +5,9 @@ import './TriangleBrushPanel.css';
 const TriangleBrushPanel = ({ currentBrushType, onBrushTypeChange }) => {
   const brushTypes = [
     { type: BRUSH_TYPES.AUTO, name: '자동', icon: '🎯' },
-    { type: BRUSH_TYPES.SQUARE, name: '사각형', icon: '⬜' },
+    { type: BRUSH_TYPES.SQUARE, name: '1×1 사각형', icon: '⬜' },
+    { type: BRUSH_TYPES.SQUARE_2X2, name: '2×2 사각형', icon: '⬛' },
+    { type: BRUSH_TYPES.DIAMOND_2X2, name: '2×2 다이아몬드', icon: '💎' },
     { type: BRUSH_TYPES.TRIANGLE_TL, name: '↖', icon: '◸' },
     { type: BRUSH_TYPES.TRIANGLE_TR, name: '↗', icon: '◹' },
     { type: BRUSH_TYPES.TRIANGLE_BL, name: '↙', icon: '◺' },

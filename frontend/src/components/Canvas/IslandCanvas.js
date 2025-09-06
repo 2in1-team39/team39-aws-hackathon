@@ -1,8 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { Stage, Layer, Rect, Line, Image as KonvaImage, Group } from 'react-konva';
+import { Stage, Layer, Rect, Line, Image as KonvaImage, Group, Path } from 'react-konva';
 import { GRID_CONFIG, COLORS } from '../../constants/gridConfig';
-import { TOOLS } from '../../constants/objectTypes';
+import { TOOLS, BRUSH_TYPES } from '../../constants/objectTypes';
 import { pixelToGrid } from '../../utils/gridUtils';
+import { 
+  getSubGridPosition, 
+  getTriangleTypeFromPosition, 
+  createTrianglePath,
+  paintTriangleCell,
+  paintSquareCell,
+  erasePaintCell
+} from '../../utils/trianglePainting';
 
 const ObjectImage = ({ x, y, width, height, imageSrc }) => {
   const [image, setImage] = useState(null);
@@ -71,7 +79,8 @@ const IslandCanvas = ({
   selectedObjectType,
   zoomLevel,
   setZoomLevel,
-  removeObject
+  removeObject,
+  currentBrushType = BRUSH_TYPES.AUTO
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   
@@ -277,10 +286,11 @@ const IslandCanvas = ({
     setZoomLevel(clampedScale);
   };
   
-  const paintCells = (gridX, gridY, isLine = false) => {
+  const paintCells = (gridX, gridY, imageX, imageY, isLine = false) => {
     if (!backgroundImage) return;
     
-    const newPaintData = { ...paintData };
+    let newPaintData = { ...paintData };
+    const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
     let cellsToPaint = [];
     
     if (isLine && lastPaintPos) {
@@ -295,17 +305,17 @@ const IslandCanvas = ({
       let y = lastPaintPos.y;
       
       while (true) {
-        cellsToPaint.push({ x, y });
+        cellsToPaint.push({ x, y, imageX, imageY });
         if (x === gridX && y === gridY) break;
         const e2 = 2 * err;
         if (e2 > -dy) { err -= dy; x += sx; }
         if (e2 < dx) { err += dx; y += sy; }
       }
     } else {
-      cellsToPaint.push({ x: gridX, y: gridY });
+      cellsToPaint.push({ x: gridX, y: gridY, imageX, imageY });
     }
     
-    cellsToPaint.forEach(({ x: centerX, y: centerY }) => {
+    cellsToPaint.forEach(({ x: centerX, y: centerY, imageX: cellImageX, imageY: cellImageY }) => {
       const offset = Math.floor(brushSize / 2);
       for (let dx = 0; dx < brushSize; dx++) {
         for (let dy = 0; dy < brushSize; dy++) {
@@ -313,11 +323,24 @@ const IslandCanvas = ({
           const y = centerY - offset + dy;
           
           if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-            const key = `${x},${y}`;
             if (currentTool === TOOLS.PAINT && selectedColor) {
-              newPaintData[key] = selectedColor.color;
+              // 브러시 타입에 따라 페인팅 방식 결정
+              let triangleType = currentBrushType;
+              
+              if (triangleType === BRUSH_TYPES.AUTO) {
+                // 서브그리드 위치 계산
+                const { subX, subY } = getSubGridPosition(cellImageX, cellImageY, cellSize, zoomLevel);
+                triangleType = getTriangleTypeFromPosition(subX, subY);
+              }
+              
+              if (triangleType === BRUSH_TYPES.SQUARE) {
+                newPaintData = paintSquareCell(newPaintData, x, y, selectedColor.color);
+              } else {
+                newPaintData = paintTriangleCell(newPaintData, x, y, triangleType, selectedColor.color);
+              }
             } else if (currentTool === TOOLS.ERASER) {
-              delete newPaintData[key];
+              newPaintData = erasePaintCell(newPaintData, x, y);
+              
               // 오브젝트도 삭제
               const objectToRemove = objects.find(obj => {
                 const objSize = obj.size || 1;
@@ -382,7 +405,7 @@ const IslandCanvas = ({
         const gridY = Math.floor(imageY / (cellSize * zoomLevel));
         
         if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
-          paintCells(gridX, gridY, isShiftPressed && lastPaintPos);
+          paintCells(gridX, gridY, imageX, imageY, isShiftPressed && lastPaintPos);
           if (!isShiftPressed) {
             setLastPaintPos({ x: gridX, y: gridY });
           }
@@ -480,9 +503,9 @@ const IslandCanvas = ({
         if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
           // 이전 위치와 현재 위치 사이의 모든 점을 칠하기
           if (lastPaintPos) {
-            paintCells(gridX, gridY, true); // 직선 그리기 사용
+            paintCells(gridX, gridY, imageX, imageY, true); // 직선 그리기 사용
           } else {
-            paintCells(gridX, gridY, false);
+            paintCells(gridX, gridY, imageX, imageY, false);
           }
           setLastPaintPos({ x: gridX, y: gridY });
         }
@@ -559,20 +582,57 @@ const IslandCanvas = ({
         
         {/* 페인트 레이어 */}
         <Layer>
-          {backgroundImage && Object.entries(paintData).map(([key, color]) => {
+          {backgroundImage && Object.entries(paintData).map(([key, paintInfo]) => {
             const [x, y] = key.split(',').map(Number);
             const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
-            return (
-              <Rect
-                key={key}
-                x={(canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x + x * cellSize * zoomLevel}
-                y={(canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y + y * cellSize * zoomLevel}
-                width={cellSize * zoomLevel}
-                height={cellSize * zoomLevel}
-                fill={color}
-                opacity={1}
-              />
-            );
+            const baseX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x + x * cellSize * zoomLevel;
+            const baseY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y + y * cellSize * zoomLevel;
+
+            // 기존 사각형 페인팅 (호환성)
+            if (typeof paintInfo === 'string') {
+              return (
+                <Rect
+                  key={key}
+                  x={baseX}
+                  y={baseY}
+                  width={cellSize * zoomLevel}
+                  height={cellSize * zoomLevel}
+                  fill={paintInfo}
+                  opacity={1}
+                />
+              );
+            }
+
+            // 새로운 구조 - 사각형
+            if (paintInfo.type === 'square') {
+              return (
+                <Rect
+                  key={key}
+                  x={baseX}
+                  y={baseY}
+                  width={cellSize * zoomLevel}
+                  height={cellSize * zoomLevel}
+                  fill={paintInfo.color}
+                  opacity={1}
+                />
+              );
+            }
+
+            // 새로운 구조 - 삼각형들
+            if (paintInfo.type === 'triangles') {
+              return Object.entries(paintInfo.triangles).map(([triangleType, color]) => (
+                <Path
+                  key={`${key}-${triangleType}`}
+                  x={baseX}
+                  y={baseY}
+                  data={createTrianglePath(triangleType, cellSize * zoomLevel)}
+                  fill={color}
+                  opacity={1}
+                />
+              ));
+            }
+
+            return null;
           })}
         </Layer>
         

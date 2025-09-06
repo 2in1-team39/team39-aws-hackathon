@@ -1,0 +1,35 @@
+import React from 'react';
+import { BRUSH_TYPES } from '../../constants/objectTypes';
+import './TriangleBrushPanel.css';
+
+const TriangleBrushPanel = ({ currentBrushType, onBrushTypeChange }) => {
+  const brushTypes = [
+    { type: BRUSH_TYPES.AUTO, name: '자동', icon: '🎯' },
+    { type: BRUSH_TYPES.SQUARE, name: '사각형', icon: '⬜' },
+    { type: BRUSH_TYPES.TRIANGLE_TL, name: '↖', icon: '◸' },
+    { type: BRUSH_TYPES.TRIANGLE_TR, name: '↗', icon: '◹' },
+    { type: BRUSH_TYPES.TRIANGLE_BL, name: '↙', icon: '◺' },
+    { type: BRUSH_TYPES.TRIANGLE_BR, name: '↘', icon: '◿' },
+  ];
+
+  return (
+    <div className="triangle-brush-panel">
+      <h4>브러시 모양</h4>
+      <div className="brush-grid">
+        {brushTypes.map(brush => (
+          <button
+            key={brush.type}
+            className={`brush-btn ${currentBrushType === brush.type ? 'active' : ''}`}
+            onClick={() => onBrushTypeChange(brush.type)}
+            title={brush.name}
+          >
+            <span className="brush-icon">{brush.icon}</span>
+            <span className="brush-label">{brush.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default TriangleBrushPanel;

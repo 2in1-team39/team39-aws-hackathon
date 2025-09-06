@@ -26,6 +26,8 @@ function App() {
     setSelectedColor,
     brushSize,
     setBrushSize,
+    currentBrushType,
+    setCurrentBrushType,
     isDragging,
     setIsDragging,
     stagePos,
@@ -257,6 +259,8 @@ function App() {
         onColorSelect={setSelectedColor}
         brushSize={brushSize}
         setBrushSize={setBrushSize}
+        currentBrushType={currentBrushType}
+        setCurrentBrushType={setCurrentBrushType}
         selectedObjectType={selectedObjectType}
         onObjectSelect={handleObjectSelect}
         onImageUpload={handleImageUpload}
@@ -298,6 +302,7 @@ function App() {
           setPaintData={setPaintData}
           selectedColor={selectedColor}
           brushSize={brushSize}
+          currentBrushType={currentBrushType}
           isDragging={isDragging}
           setIsDragging={setIsDragging}
           stagePos={stagePos}

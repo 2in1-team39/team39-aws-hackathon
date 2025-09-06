@@ -16,6 +16,15 @@ export const PAINT_COLORS = {
   ROAD: { id: 'road', name: '도로', color: '#BBA774' }
 };
 
+export const BRUSH_TYPES = {
+  SQUARE: 'square',
+  TRIANGLE_TL: 'triangle-tl', // 왼쪽 위 삼각형
+  TRIANGLE_TR: 'triangle-tr', // 오른쪽 위 삼각형
+  TRIANGLE_BL: 'triangle-bl', // 왼쪽 아래 삼각형
+  TRIANGLE_BR: 'triangle-br', // 오른쪽 아래 삼각형
+  AUTO: 'auto' // 클릭 위치에 따라 자동 결정
+};
+
 export const TOOLS = {
   PAINT: 'paint',
   OBJECT: 'object',

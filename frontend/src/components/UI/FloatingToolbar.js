@@ -11,6 +11,8 @@ const FloatingToolbar = ({
   onColorSelect,
   brushSize,
   setBrushSize,
+  currentBrushType,
+  setCurrentBrushType,
   selectedObjectType,
   onObjectSelect,
   onImageUpload,
@@ -171,6 +173,8 @@ const FloatingToolbar = ({
             onColorSelect={onColorSelect}
             brushSize={brushSize}
             setBrushSize={setBrushSize}
+            currentBrushType={currentBrushType}
+            setCurrentBrushType={setCurrentBrushType}
             selectedObjectType={selectedObjectType}
             onObjectSelect={onObjectSelect}
           />

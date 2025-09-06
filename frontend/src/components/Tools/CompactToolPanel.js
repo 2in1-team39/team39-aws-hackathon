@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { TOOLS, PAINT_COLORS } from '../../constants/objectTypes';
+import TriangleBrushPanel from './TriangleBrushPanel';
 
 const CompactToolPanel = ({ 
   currentTool, 
@@ -8,6 +9,8 @@ const CompactToolPanel = ({
   onColorSelect, 
   brushSize, 
   setBrushSize,
+  currentBrushType,
+  setCurrentBrushType,
   selectedObjectType,
   onObjectSelect 
 }) => {
@@ -70,6 +73,14 @@ const CompactToolPanel = ({
             style={{ width: '100%' }}
           />
         </div>
+      )}
+
+      {/* 브러시 타입 선택 */}
+      {currentTool === TOOLS.PAINT && (
+        <TriangleBrushPanel
+          currentBrushType={currentBrushType}
+          onBrushTypeChange={setCurrentBrushType}
+        />
       )}
     </div>
   );

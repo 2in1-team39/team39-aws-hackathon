@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { TOOLS, PAINT_COLORS } from '../constants/objectTypes';
+import { TOOLS, PAINT_COLORS, BRUSH_TYPES } from '../constants/objectTypes';
 
 export const useCanvas = () => {
   const [currentTool, setCurrentTool] = useState(TOOLS.PAINT);
@@ -8,6 +8,7 @@ export const useCanvas = () => {
   const [paintData, setPaintData] = useState({});
   const [selectedColor, setSelectedColor] = useState(PAINT_COLORS.WATER);
   const [brushSize, setBrushSize] = useState(1);
+  const [currentBrushType, setCurrentBrushType] = useState(BRUSH_TYPES.AUTO);
   const [isDragging, setIsDragging] = useState(false);
   const [stagePos, setStagePos] = useState(() => {
     const width = window.innerWidth;
@@ -61,6 +62,8 @@ export const useCanvas = () => {
     setSelectedColor,
     brushSize,
     setBrushSize,
+    currentBrushType,
+    setCurrentBrushType,
     isDragging,
     setIsDragging,
     stagePos,

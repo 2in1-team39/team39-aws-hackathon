@@ -12,19 +12,15 @@ export const PAINT_COLORS = {
   SAND: { id: 'sand', name: '모래', color: '#EEE6A5' },
   ISLAND: { id: 'island', name: '섬', color: '#417B41' },
   CLIFF1: { id: 'cliff1', name: '1층 절벽', color: '#3D9B3A' },
-  CLIFF2: { id: 'cliff2', name: '2엵 절벽', color: '#5CC648' },
-  ROAD: { id: 'road', name: '도로', color: '#BBA774' }
+  CLIFF2: { id: 'cliff2', name: '2층 절벽', color: '#5CC648' },
+  ROAD: { id: 'road', name: '도로', color: '#BBA774' },
+  CUSTOM: { id: 'custom', name: '사용자 정의', color: '#000000' }
 };
 
 export const BRUSH_TYPES = {
   SQUARE: 'square',
   SQUARE_2X2: 'square-2x2', // 2x2 사각형
-  DIAMOND_2X2: 'diamond-2x2', // 2x2 다이아몬드
-  TRIANGLE_TL: 'triangle-tl', // 왼쪽 위 삼각형
-  TRIANGLE_TR: 'triangle-tr', // 오른쪽 위 삼각형
-  TRIANGLE_BL: 'triangle-bl', // 왼쪽 아래 삼각형
-  TRIANGLE_BR: 'triangle-br', // 오른쪽 아래 삼각형
-  AUTO: 'auto' // 클릭 위치에 따라 자동 결정
+  DIAMOND_2X2: 'diamond-2x2' // 2x2 다이아몬드
 };
 
 export const TOOLS = {

@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { Stage, Layer, Rect, Line, Image as KonvaImage, Group, Path } from 'react-konva';
+import { Stage, Layer, Rect, Line, Image as KonvaImage, Group } from 'react-konva';
 import { GRID_CONFIG, COLORS } from '../../constants/gridConfig';
 import { TOOLS, BRUSH_TYPES } from '../../constants/objectTypes';
 import { pixelToGrid } from '../../utils/gridUtils';
-import { 
-  getSubGridPosition, 
-  getTriangleTypeFromPosition, 
-  createTrianglePath,
-  paintTriangleCell,
+import {
+  getSubGridPosition,
   paintSquareCell,
   erasePaintCell,
   paint2x2Cell,
@@ -82,7 +79,7 @@ const IslandCanvas = ({
   zoomLevel,
   setZoomLevel,
   removeObject,
-  currentBrushType = BRUSH_TYPES.AUTO
+  currentBrushType = BRUSH_TYPES.SQUARE
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   
@@ -330,20 +327,20 @@ const IslandCanvas = ({
           const startX = lastPaintPos.x - 1;
           const endX = gridX + 1;
           if (startX >= 0) {
-            newPaintData = paintTriangleCell(newPaintData, startX, lastPaintPos.y, BRUSH_TYPES.TRIANGLE_TR, selectedColor.color);
+            newPaintData = paintSquareCell(newPaintData, startX, lastPaintPos.y, selectedColor.color);
           }
           if (endX < GRID_CONFIG.COLS) {
-            newPaintData = paintTriangleCell(newPaintData, endX, gridY, BRUSH_TYPES.TRIANGLE_TL, selectedColor.color);
+            newPaintData = paintSquareCell(newPaintData, endX, gridY, selectedColor.color);
           }
         } else {
           // 왼쪽으로 그리기
           const startX = lastPaintPos.x + 1;
           const endX = gridX - 1;
           if (startX < GRID_CONFIG.COLS) {
-            newPaintData = paintTriangleCell(newPaintData, startX, lastPaintPos.y, BRUSH_TYPES.TRIANGLE_TL, selectedColor.color);
+            newPaintData = paintSquareCell(newPaintData, startX, lastPaintPos.y, selectedColor.color);
           }
           if (endX >= 0) {
-            newPaintData = paintTriangleCell(newPaintData, endX, gridY, BRUSH_TYPES.TRIANGLE_TR, selectedColor.color);
+            newPaintData = paintSquareCell(newPaintData, endX, gridY, selectedColor.color);
           }
         }
       } else {
@@ -353,20 +350,20 @@ const IslandCanvas = ({
           const startY = lastPaintPos.y - 1;
           const endY = gridY + 1;
           if (startY >= 0) {
-            newPaintData = paintTriangleCell(newPaintData, lastPaintPos.x, startY, BRUSH_TYPES.TRIANGLE_BR, selectedColor.color);
+            newPaintData = paintSquareCell(newPaintData, lastPaintPos.x, startY, selectedColor.color);
           }
           if (endY < GRID_CONFIG.ROWS) {
-            newPaintData = paintTriangleCell(newPaintData, gridX, endY, BRUSH_TYPES.TRIANGLE_TL, selectedColor.color);
+            newPaintData = paintSquareCell(newPaintData, gridX, endY, selectedColor.color);
           }
         } else {
           // 위쪽으로 그리기
           const startY = lastPaintPos.y + 1;
           const endY = gridY - 1;
           if (startY < GRID_CONFIG.ROWS) {
-            newPaintData = paintTriangleCell(newPaintData, lastPaintPos.x, startY, BRUSH_TYPES.TRIANGLE_TL, selectedColor.color);
+            newPaintData = paintSquareCell(newPaintData, lastPaintPos.x, startY, selectedColor.color);
           }
           if (endY >= 0) {
-            newPaintData = paintTriangleCell(newPaintData, gridX, endY, BRUSH_TYPES.TRIANGLE_BR, selectedColor.color);
+            newPaintData = paintSquareCell(newPaintData, gridX, endY, selectedColor.color);
           }
         }
       }
@@ -388,20 +385,8 @@ const IslandCanvas = ({
                   newPaintData = paint2x2Cell(newPaintData, x, y, currentBrushType, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
                 }
               } else {
-                // 기존 1x1 브러시들
-                let triangleType = currentBrushType;
-                
-                if (triangleType === BRUSH_TYPES.AUTO) {
-                  // 서브그리드 위치 계산
-                  const { subX, subY } = getSubGridPosition(cellImageX, cellImageY, cellSize, zoomLevel);
-                  triangleType = getTriangleTypeFromPosition(subX, subY);
-                }
-                
-                if (triangleType === BRUSH_TYPES.SQUARE) {
-                  newPaintData = paintSquareCell(newPaintData, x, y, selectedColor.color);
-                } else {
-                  newPaintData = paintTriangleCell(newPaintData, x, y, triangleType, selectedColor.color);
-                }
+                // 1x1 사각형 브러시
+                newPaintData = paintSquareCell(newPaintData, x, y, selectedColor.color);
               }
             } else if (currentTool === TOOLS.ERASER) {
               newPaintData = erasePaintCell(newPaintData, x, y);
@@ -683,19 +668,6 @@ const IslandCanvas = ({
               );
             }
 
-            // 새로운 구조 - 삼각형들
-            if (paintInfo.type === 'triangles') {
-              return Object.entries(paintInfo.triangles).map(([triangleType, color]) => (
-                <Path
-                  key={`${key}-${triangleType}`}
-                  x={baseX}
-                  y={baseY}
-                  data={createTrianglePath(triangleType, cellSize * zoomLevel)}
-                  fill={color}
-                  opacity={1}
-                />
-              ));
-            }
 
 
             return null;

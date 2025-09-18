@@ -243,8 +243,7 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
             border: 'none',
             borderRadius: '6px',
             cursor: 'pointer',
-            fontSize: '14px',
-            marginTop: 'auto'
+            fontSize: '14px'
           }}
         >
           확인

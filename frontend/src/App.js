@@ -17,6 +17,7 @@ function App() {
     backgroundImage,
     setBackgroundImage,
     objects,
+    setObjects,
     addObject,
     removeObject,
     clearCanvas,

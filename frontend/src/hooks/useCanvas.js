@@ -56,6 +56,7 @@ export const useCanvas = () => {
     backgroundImage,
     setBackgroundImage,
     objects,
+    setObjects,
     addObject,
     removeObject,
     updateObject,

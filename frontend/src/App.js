@@ -62,6 +62,20 @@ function App() {
   const [selectedObjectType, setSelectedObjectType] = useState(null);
   const [brushUpdateTrigger, setBrushUpdateTrigger] = useState(0);
 
+  // 앱 시작 시 저장된 데이터 로드
+  React.useEffect(() => {
+    loadFromLocalStorage();
+  }, []);
+
+  // 자동 저장: 주요 상태가 변경될 때마다 저장
+  React.useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      saveToLocalStorage();
+    }, 1000); // 1초 후 저장 (디바운싱)
+
+    return () => clearTimeout(timeoutId);
+  }, [objects, paintData, backgroundImage, selectedColor, brushSize, currentBrushType, currentTool, zoomLevel, stagePos, step]);
+
   // 브러시 크기 변경 시 커서 업데이트 트리거
   const handleBrushSizeChange = (size) => {
     setBrushSize(size);
@@ -334,22 +348,99 @@ function App() {
     }
   }, [currentTool, brushSize, selectedColor, currentBrushType, isSpacePressed, isRightPressed, isEyedropperActive, zoomLevel, backgroundImage, brushUpdateTrigger]);
 
+  // localStorage에 자동 저장
+  const saveToLocalStorage = () => {
+    try {
+      const projectData = {
+        objects,
+        paintData,
+        backgroundImage: backgroundImage ? backgroundImage.src : null,
+        selectedColor,
+        brushSize,
+        currentBrushType,
+        currentTool,
+        zoomLevel,
+        stagePos,
+        step,
+        timestamp: new Date().toISOString()
+      };
+
+      localStorage.setItem('island-designer-autosave', JSON.stringify(projectData));
+      console.log('작업 내용이 자동 저장되었습니다.');
+    } catch (error) {
+      console.error('자동 저장 실패:', error);
+    }
+  };
+
+  // localStorage에서 불러오기
+  const loadFromLocalStorage = () => {
+    try {
+      const savedData = localStorage.getItem('island-designer-autosave');
+      if (savedData) {
+        const projectData = JSON.parse(savedData);
+
+        // 상태 복원
+        if (projectData.objects) setObjects(projectData.objects);
+        if (projectData.paintData) setPaintData(projectData.paintData);
+        if (projectData.selectedColor) setSelectedColor(projectData.selectedColor);
+        if (projectData.brushSize) setBrushSize(projectData.brushSize);
+        if (projectData.currentBrushType) setCurrentBrushType(projectData.currentBrushType);
+        if (projectData.currentTool) setCurrentTool(projectData.currentTool);
+        if (projectData.zoomLevel) setZoomLevel(projectData.zoomLevel);
+        if (projectData.stagePos) setStagePos(projectData.stagePos);
+        if (projectData.step) setStep(projectData.step);
+
+        // 배경 이미지 복원
+        if (projectData.backgroundImage) {
+          const img = new Image();
+          img.onload = () => {
+            setBackgroundImage(img);
+            setUploadedImage(img);
+          };
+          img.src = projectData.backgroundImage;
+        }
+
+        console.log('저장된 작업을 불러왔습니다:', projectData.timestamp);
+        return true;
+      }
+    } catch (error) {
+      console.error('불러오기 실패:', error);
+    }
+    return false;
+  };
+
+  // 저장된 데이터 삭제
+  const clearSavedData = () => {
+    if (window.confirm('저장된 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      try {
+        localStorage.removeItem('island-designer-autosave');
+        console.log('저장된 데이터가 삭제되었습니다.');
+        // 페이지 새로고침으로 초기 상태로 돌아감
+        window.location.reload();
+      } catch (error) {
+        console.error('데이터 삭제 실패:', error);
+      }
+    }
+  };
+
+  // 파일로 저장 (기존 기능)
   const handleSaveProject = () => {
     const projectData = {
       objects,
+      paintData,
       backgroundImage: backgroundImage ? backgroundImage.src : null,
       timestamp: new Date().toISOString()
     };
-    
+
     const dataStr = JSON.stringify(projectData);
     const dataBlob = new Blob([dataStr], { type: 'application/json' });
     const url = URL.createObjectURL(dataBlob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     link.download = 'island-design.json';
     link.click();
-    
+
     URL.revokeObjectURL(url);
   };
 
@@ -380,6 +471,7 @@ function App() {
         setStep={setStep}
         onSaveProject={handleSaveProject}
         onClearCanvas={clearCanvas}
+        onClearSavedData={clearSavedData}
       />
       
       {step === 'upload' && (

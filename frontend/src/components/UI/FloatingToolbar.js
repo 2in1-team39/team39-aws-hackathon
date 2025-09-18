@@ -24,7 +24,8 @@ const FloatingToolbar = ({
   setUploadedImage,
   setStep,
   onSaveProject,
-  onClearCanvas
+  onClearCanvas,
+  onClearSavedData
 }) => {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [isObjectsOpen, setIsObjectsOpen] = useState(false);
@@ -156,6 +157,30 @@ const FloatingToolbar = ({
             }}
           >
             🗑️
+          </button>
+        )}
+
+        {/* 저장된 데이터 삭제 버튼 */}
+        {step === 'edit' && (
+          <button
+            onClick={onClearSavedData}
+            style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '25px',
+              border: 'none',
+              backgroundColor: '#dc3545',
+              color: 'white',
+              fontSize: '20px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            title="저장된 모든 데이터 삭제"
+          >
+            💣
           </button>
         )}
 
@@ -305,6 +330,8 @@ const FloatingToolbar = ({
               <li>오른쪽 클릭으로 삭제</li>
               <li>스페이스바 + 드래그로 지도 이동</li>
               <li>마우스 휠로 줌 인/아웃</li>
+              <li>💾 작업 내용이 자동 저장됩니다</li>
+              <li>💣 빨간 버튼으로 저장 데이터 삭제</li>
             </ul>
           )}
         </div>

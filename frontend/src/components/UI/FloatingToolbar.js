@@ -32,35 +32,67 @@ const FloatingToolbar = ({
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isChecklistOpen, setIsChecklistOpen] = useState(false);
 
+  // 디바이스 감지 (터치 디바이스인지 확인)
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isTablet = isTouchDevice && (window.innerWidth >= 768 && window.innerWidth <= 1024);
+
+  // 반응형 스타일
+  const getButtonSize = () => {
+    if (isTablet) return { width: '60px', height: '60px', borderRadius: '30px' };
+    return { width: '50px', height: '50px', borderRadius: '25px' };
+  };
+
+  const getToolbarSpacing = () => {
+    if (isTablet) return { top: '30px', left: '30px', gap: '15px' };
+    return { top: '20px', left: '20px', gap: '10px' };
+  };
+
+  const getFontSize = () => {
+    if (isTablet) return '24px';
+    return '20px';
+  };
+
+  const buttonSize = getButtonSize();
+  const toolbarSpacing = getToolbarSpacing();
+  const fontSize = getFontSize();
+
+  // 공통 버튼 스타일
+  const getButtonStyle = (isActive = false, backgroundColor = 'white', activeColor = '#4CAF50') => ({
+    width: buttonSize.width,
+    height: buttonSize.height,
+    borderRadius: buttonSize.borderRadius,
+    border: 'none',
+    backgroundColor: isActive ? activeColor : backgroundColor,
+    color: isActive ? 'white' : (backgroundColor === 'white' ? '#333' : 'white'),
+    fontSize: fontSize,
+    cursor: 'pointer',
+    boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    transition: 'all 0.2s ease',
+    userSelect: 'none',
+    WebkitTapHighlightColor: 'transparent' // 모바일에서 탭 하이라이트 제거
+  });
+
   return (
     <>
       {/* 메인 툴바 */}
       <div style={{
         position: 'fixed',
-        top: '20px',
-        left: '20px',
+        top: toolbarSpacing.top,
+        left: toolbarSpacing.left,
         display: 'flex',
-        gap: '10px',
-        zIndex: 1000
+        gap: toolbarSpacing.gap,
+        zIndex: 1000,
+        flexWrap: isTablet ? 'wrap' : 'nowrap',
+        maxWidth: isTablet ? '200px' : 'none'
       }}>
         {/* 페인트 버튼 */}
         {step === 'edit' && (
           <button
             onClick={() => setIsToolsOpen(!isToolsOpen)}
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '25px',
-              border: 'none',
-              backgroundColor: isToolsOpen ? '#4CAF50' : 'white',
-              color: isToolsOpen ? 'white' : '#333',
-              fontSize: '20px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            style={getButtonStyle(isToolsOpen, 'white', '#4CAF50')}
           >
             🎨
           </button>
@@ -70,20 +102,7 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={() => setIsObjectsOpen(!isObjectsOpen)}
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '25px',
-              border: 'none',
-              backgroundColor: isObjectsOpen ? '#FF9800' : 'white',
-              color: isObjectsOpen ? 'white' : '#333',
-              fontSize: '20px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            style={getButtonStyle(isObjectsOpen, 'white', '#FF9800')}
           >
             🏠
           </button>
@@ -95,20 +114,7 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={() => setIsChecklistOpen(!isChecklistOpen)}
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '25px',
-              border: 'none',
-              backgroundColor: isChecklistOpen ? '#9C27B0' : 'white',
-              color: isChecklistOpen ? 'white' : '#333',
-              fontSize: '20px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            style={getButtonStyle(isChecklistOpen, 'white', '#9C27B0')}
           >
             ✅
           </button>
@@ -118,20 +124,7 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={onSaveProject}
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '25px',
-              border: 'none',
-              backgroundColor: 'white',
-              color: '#333',
-              fontSize: '20px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            style={getButtonStyle(false, 'white')}
           >
             💾
           </button>
@@ -141,20 +134,7 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={onClearCanvas}
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '25px',
-              border: 'none',
-              backgroundColor: 'white',
-              color: '#333',
-              fontSize: '20px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            style={getButtonStyle(false, 'white')}
           >
             🗑️
           </button>
@@ -164,20 +144,7 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={onClearSavedData}
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '25px',
-              border: 'none',
-              backgroundColor: '#dc3545',
-              color: 'white',
-              fontSize: '20px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            style={getButtonStyle(false, '#dc3545')}
             title="저장된 모든 데이터 삭제"
           >
             💣
@@ -187,20 +154,7 @@ const FloatingToolbar = ({
         {/* 도움말 버튼 */}
         <button
           onClick={() => setIsHelpOpen(!isHelpOpen)}
-          style={{
-            width: '50px',
-            height: '50px',
-            borderRadius: '25px',
-            border: 'none',
-            backgroundColor: isHelpOpen ? '#2196F3' : 'white',
-            color: isHelpOpen ? 'white' : '#333',
-            fontSize: '20px',
-            cursor: 'pointer',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}
+          style={getButtonStyle(isHelpOpen, 'white', '#2196F3')}
         >
           ❓
         </button>
@@ -210,13 +164,14 @@ const FloatingToolbar = ({
       {isToolsOpen && step === 'edit' && (
         <div style={{
           position: 'fixed',
-          top: '80px',
-          left: '20px',
+          top: isTablet ? '120px' : '80px',
+          left: isTablet ? '30px' : '20px',
           backgroundColor: 'white',
-          borderRadius: '10px',
+          borderRadius: isTablet ? '15px' : '10px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           zIndex: 999,
-          minWidth: '250px'
+          minWidth: isTablet ? '300px' : '250px',
+          maxWidth: isTablet ? '90vw' : 'none'
         }}>
           <CompactToolPanel
             currentTool={currentTool}
@@ -239,13 +194,14 @@ const FloatingToolbar = ({
       {isObjectsOpen && step === 'edit' && (
         <div style={{
           position: 'fixed',
-          top: '80px',
-          left: '80px',
+          top: isTablet ? '120px' : '80px',
+          left: isTablet ? '30px' : '80px',
           backgroundColor: 'white',
-          borderRadius: '10px',
+          borderRadius: isTablet ? '15px' : '10px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           zIndex: 999,
-          minWidth: '250px'
+          minWidth: isTablet ? '300px' : '250px',
+          maxWidth: isTablet ? '90vw' : 'none'
         }}>
           <ObjectPanel
             currentTool={currentTool}
@@ -260,8 +216,8 @@ const FloatingToolbar = ({
       {isChecklistOpen && step === 'edit' && (
         <div style={{
           position: 'fixed',
-          top: '80px',
-          left: '140px',
+          top: isTablet ? '120px' : '80px',
+          left: isTablet ? '30px' : '140px',
           zIndex: 999
         }}>
           <ChecklistPanel />
@@ -282,20 +238,7 @@ const FloatingToolbar = ({
               setUploadedImage(null);
               setStep('upload');
             }}
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '25px',
-              border: 'none',
-              backgroundColor: 'white',
-              color: '#333',
-              fontSize: '20px',
-              cursor: 'pointer',
-              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
+            style={getButtonStyle(false, 'white')}
           >
             🔄
           </button>
@@ -306,25 +249,26 @@ const FloatingToolbar = ({
       {isHelpOpen && (
         <div style={{
           position: 'fixed',
-          bottom: '20px',
-          left: '20px',
+          bottom: isTablet ? '30px' : '20px',
+          left: isTablet ? '30px' : '20px',
           backgroundColor: 'white',
-          borderRadius: '10px',
+          borderRadius: isTablet ? '15px' : '10px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           zIndex: 999,
-          padding: '15px',
-          maxWidth: '300px'
+          padding: isTablet ? '20px' : '15px',
+          maxWidth: isTablet ? '90vw' : '300px',
+          fontSize: isTablet ? '16px' : '14px'
         }}>
-          <h4 style={{ margin: '0 0 10px 0', fontSize: '14px' }}>사용법</h4>
+          <h4 style={{ margin: '0 0 10px 0', fontSize: isTablet ? '18px' : '14px' }}>사용법</h4>
           {step === 'upload' && (
-            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px' }}>
+            <ul style={{ margin: 0, paddingLeft: isTablet ? '30px' : '20px', fontSize: isTablet ? '16px' : '12px', lineHeight: isTablet ? '1.6' : '1.4' }}>
               <li>1단계: 섬 지도 이미지를 업로드하세요</li>
               <li>2단계: 7×6 격자에 맞춰 영역을 선택하세요</li>
               <li>3단계: 112×96 격자에서 섬을 꾸미세요</li>
             </ul>
           )}
           {step === 'edit' && (
-            <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px' }}>
+            <ul style={{ margin: 0, paddingLeft: isTablet ? '30px' : '20px', fontSize: isTablet ? '16px' : '12px', lineHeight: isTablet ? '1.6' : '1.4' }}>
               <li>🎨 버튼으로 도구를 선택하세요</li>
               <li>격자를 클릭하여 페인트/오브젝트 배치</li>
               <li>오른쪽 클릭으로 삭제</li>

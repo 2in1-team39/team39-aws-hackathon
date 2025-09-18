@@ -63,6 +63,68 @@ function App() {
   const [selectedObjectType, setSelectedObjectType] = useState(null);
   const [brushUpdateTrigger, setBrushUpdateTrigger] = useState(0);
 
+  // localStorage에 자동 저장
+  const saveToLocalStorage = useCallback(() => {
+    try {
+      const projectData = {
+        objects,
+        paintData,
+        backgroundImage: backgroundImage ? backgroundImage.src : null,
+        selectedColor,
+        brushSize,
+        currentBrushType,
+        currentTool,
+        zoomLevel,
+        stagePos,
+        step,
+        timestamp: new Date().toISOString()
+      };
+
+      localStorage.setItem('island-designer-autosave', JSON.stringify(projectData));
+      console.log('작업 내용이 자동 저장되었습니다.');
+    } catch (error) {
+      console.error('자동 저장 실패:', error);
+    }
+  }, [objects, paintData, backgroundImage, selectedColor, brushSize, currentBrushType, currentTool, zoomLevel, stagePos, step]);
+
+  // localStorage에서 불러오기
+  const loadFromLocalStorage = useCallback(() => {
+    try {
+      const savedData = localStorage.getItem('island-designer-autosave');
+      if (savedData) {
+        const projectData = JSON.parse(savedData);
+
+        // 상태 복원
+        if (projectData.objects) setObjects(projectData.objects);
+        if (projectData.paintData) setPaintData(projectData.paintData);
+        if (projectData.selectedColor) setSelectedColor(projectData.selectedColor);
+        if (projectData.brushSize) setBrushSize(projectData.brushSize);
+        if (projectData.currentBrushType) setCurrentBrushType(projectData.currentBrushType);
+        if (projectData.currentTool) setCurrentTool(projectData.currentTool);
+        if (projectData.zoomLevel) setZoomLevel(projectData.zoomLevel);
+        if (projectData.stagePos) setStagePos(projectData.stagePos);
+        if (projectData.step && projectData.backgroundImage) setStep(projectData.step);
+        else setStep('upload');
+
+        // 배경 이미지 복원
+        if (projectData.backgroundImage) {
+          const img = new Image();
+          img.onload = () => {
+            setBackgroundImage(img);
+            setUploadedImage(img);
+          };
+          img.src = projectData.backgroundImage;
+        }
+
+        console.log('저장된 작업을 불러왔습니다:', projectData.timestamp);
+        return true;
+      }
+    } catch (error) {
+      console.error('불러오기 실패:', error);
+    }
+    return false;
+  }, [setObjects, setPaintData, setSelectedColor, setBrushSize, setCurrentBrushType, setCurrentTool, setZoomLevel, setStagePos, setStep, setBackgroundImage, setUploadedImage]);
+
   // 앱 시작 시 저장된 데이터 로드
   React.useEffect(() => {
     loadFromLocalStorage();
@@ -328,16 +390,16 @@ function App() {
       if (isSpacePressed) {
         stage.container().style.cursor = 'grab';
       } else if (isRightPressed) {
-        stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ff6b6b\' d=\'M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l8.48-8.48c.79-.78 2.05-.78 2.84 0l2.11 2.12zm-1.41 1.41L12.7 7.1 16.9 11.3l2.12-2.12-4.19-4.21z\'/%3E%3Cpath fill=\'%23ffa8a8\' d=\'M12.7 7.1L8.51 11.3 12.7 15.5 16.9 11.3 12.7 7.1z\'/%3E%3C/svg%3E") 12 12, auto';
+        stage.container().style.cursor = 'crosshair';
       } else if (isEyedropperActive) {
-        stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23007bff\' d=\'M19.35 11.72l-9.5-9.5a1 1 0 0 0-1.41 0L7.39 3.27a1 1 0 0 0 0 1.41l1.45 1.45-5.66 5.66a1 1 0 0 0-.29.71v5a1 1 0 0 0 1 1h5a1 1 0 0 0 .71-.29l5.66-5.66 1.45 1.45a1 1 0 0 0 1.41 0l1.05-1.05a1 1 0 0 0 0-1.41zm-8.5-6.2l1.79 1.79-1.41 1.41L9.44 6.93l1.41-1.41zM8.5 14.5H5v-3.5L8.5 14.5z\'/%3E%3C/svg%3E") 12 12, auto';
+        stage.container().style.cursor = 'crosshair';
       } else {
         switch (currentTool) {
           case TOOLS.PAINT:
             stage.container().style.cursor = generateBrushCursor();
             break;
           case TOOLS.ERASER:
-            stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ff6b6b\' d=\'M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l8.48-8.48c.79-.78 2.05-.78 2.84 0l2.11 2.12zm-1.41 1.41L12.7 7.1 16.9 11.3l2.12-2.12-4.19-4.21z\'/%3E%3Cpath fill=\'%23ffa8a8\' d=\'M12.7 7.1L8.51 11.3 12.7 15.5 16.9 11.3 12.7 7.1z\'/%3E%3C/svg%3E") 12 12, auto';
+            stage.container().style.cursor = 'crosshair';
             break;
           case TOOLS.OBJECT:
             stage.container().style.cursor = 'pointer';
@@ -348,67 +410,6 @@ function App() {
       }
     }
   }, [currentTool, brushSize, selectedColor, currentBrushType, isSpacePressed, isRightPressed, isEyedropperActive, zoomLevel, backgroundImage, brushUpdateTrigger, generateBrushCursor, stageRef]);
-
-  // localStorage에 자동 저장
-  const saveToLocalStorage = useCallback(() => {
-    try {
-      const projectData = {
-        objects,
-        paintData,
-        backgroundImage: backgroundImage ? backgroundImage.src : null,
-        selectedColor,
-        brushSize,
-        currentBrushType,
-        currentTool,
-        zoomLevel,
-        stagePos,
-        step,
-        timestamp: new Date().toISOString()
-      };
-
-      localStorage.setItem('island-designer-autosave', JSON.stringify(projectData));
-      console.log('작업 내용이 자동 저장되었습니다.');
-    } catch (error) {
-      console.error('자동 저장 실패:', error);
-    }
-  }, [objects, paintData, backgroundImage, selectedColor, brushSize, currentBrushType, currentTool, zoomLevel, stagePos, step]);
-
-  // localStorage에서 불러오기
-  const loadFromLocalStorage = useCallback(() => {
-    try {
-      const savedData = localStorage.getItem('island-designer-autosave');
-      if (savedData) {
-        const projectData = JSON.parse(savedData);
-
-        // 상태 복원
-        if (projectData.objects) setObjects(projectData.objects);
-        if (projectData.paintData) setPaintData(projectData.paintData);
-        if (projectData.selectedColor) setSelectedColor(projectData.selectedColor);
-        if (projectData.brushSize) setBrushSize(projectData.brushSize);
-        if (projectData.currentBrushType) setCurrentBrushType(projectData.currentBrushType);
-        if (projectData.currentTool) setCurrentTool(projectData.currentTool);
-        if (projectData.zoomLevel) setZoomLevel(projectData.zoomLevel);
-        if (projectData.stagePos) setStagePos(projectData.stagePos);
-        if (projectData.step) setStep(projectData.step);
-
-        // 배경 이미지 복원
-        if (projectData.backgroundImage) {
-          const img = new Image();
-          img.onload = () => {
-            setBackgroundImage(img);
-            setUploadedImage(img);
-          };
-          img.src = projectData.backgroundImage;
-        }
-
-        console.log('저장된 작업을 불러왔습니다:', projectData.timestamp);
-        return true;
-      }
-    } catch (error) {
-      console.error('불러오기 실패:', error);
-    }
-    return false;
-  }, [setObjects, setPaintData, setSelectedColor, setBrushSize, setCurrentBrushType, setCurrentTool, setZoomLevel, setStagePos, setStep, setBackgroundImage, setUploadedImage]);
 
   // 저장된 데이터 삭제
   const clearSavedData = () => {
@@ -444,8 +445,6 @@ function App() {
 
     URL.revokeObjectURL(url);
   };
-
-
 
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: '#7AD8C6' }}>

@@ -130,8 +130,7 @@ const IslandCanvas = ({
   const gridDisplayWidth = canvasSize.width * 0.9;
   const gridDisplayHeight = canvasSize.height * 0.9;
   
-  const scaleX = gridDisplayWidth / imageWidth;
-  const scaleY = gridDisplayHeight / imageHeight;
+
   const drawGrid = () => {
     if (!backgroundImage) return [];
     
@@ -300,7 +299,6 @@ const IslandCanvas = ({
     }
 
     // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
-    const brushSize = happyBrush.rawBrushSize;
     // 모든 셀 페인팅 (연속성을 위해)
     cellsToPaint.forEach(({ x, y }) => {
       if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {

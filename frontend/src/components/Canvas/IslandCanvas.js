@@ -80,6 +80,7 @@ const IslandCanvas = ({
   isEyedropperActive = false
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
+  const [lastTouchDistance, setLastTouchDistance] = useState(null);
   
   
   useEffect(() => {
@@ -266,6 +267,68 @@ const IslandCanvas = ({
       y: newImageY - centerY
     });
     setZoomLevel(clampedScale);
+  };
+
+  const getTouchDistance = (touches) => {
+    const touch1 = touches[0];
+    const touch2 = touches[1];
+    return Math.sqrt(
+      Math.pow(touch2.clientX - touch1.clientX, 2) +
+      Math.pow(touch2.clientY - touch1.clientY, 2)
+    );
+  };
+
+  const handleTouchStart = (e) => {
+    if (e.evt.touches.length === 2) {
+      const distance = getTouchDistance(e.evt.touches);
+      setLastTouchDistance(distance);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    if (e.evt.touches.length === 2 && lastTouchDistance) {
+      e.evt.preventDefault();
+      const currentDistance = getTouchDistance(e.evt.touches);
+      const scale = currentDistance / lastTouchDistance;
+      
+      const stage = e.target.getStage();
+      const touch1 = e.evt.touches[0];
+      const touch2 = e.evt.touches[1];
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      
+      const oldScale = zoomLevel;
+      const newScale = Math.max(0.1, Math.min(5, oldScale * scale));
+      
+      // 터치 중심점 기준으로 줌
+      const currentImageX = (canvasSize.width - backgroundImage.width * oldScale) / 2 + stagePos.x;
+      const currentImageY = (canvasSize.height - backgroundImage.height * oldScale) / 2 + stagePos.y;
+      
+      const touchRatioX = (centerX - currentImageX) / (backgroundImage.width * oldScale);
+      const touchRatioY = (centerY - currentImageY) / (backgroundImage.height * oldScale);
+      
+      const newTouchX = touchRatioX * backgroundImage.width * newScale;
+      const newTouchY = touchRatioY * backgroundImage.height * newScale;
+      
+      const newImageX = centerX - newTouchX;
+      const newImageY = centerY - newTouchY;
+      
+      const newCenterX = (canvasSize.width - backgroundImage.width * newScale) / 2;
+      const newCenterY = (canvasSize.height - backgroundImage.height * newScale) / 2;
+      
+      setStagePos({
+        x: newImageX - newCenterX,
+        y: newImageY - newCenterY
+      });
+      setZoomLevel(newScale);
+      setLastTouchDistance(currentDistance);
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    if (e.evt.touches.length < 2) {
+      setLastTouchDistance(null);
+    }
   };
   
   const paintCells = (gridX, gridY, imageX, imageY) => {
@@ -527,6 +590,27 @@ const IslandCanvas = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onWheel={handleWheel}
+          onTouchStart={(e) => {
+            if (e.evt.touches.length === 1) {
+              handleMouseDown(e);
+            } else {
+              handleTouchStart(e);
+            }
+          }}
+          onTouchMove={(e) => {
+            if (e.evt.touches.length === 1) {
+              handleMouseMove(e);
+            } else {
+              handleTouchMove(e);
+            }
+          }}
+          onTouchEnd={(e) => {
+            if (e.evt.touches.length === 0) {
+              handleMouseUp(e);
+            } else {
+              handleTouchEnd(e);
+            }
+          }}
           pixelRatio={window.devicePixelRatio || 1}
         >
         {/* 배경 레이어 */}

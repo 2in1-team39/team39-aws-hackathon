@@ -119,7 +119,7 @@ const IslandCanvas = ({
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, []);
+  }, [setIsSpacePressed, setIsShiftPressed, setLastPaintPos]);
   
   // 이미지 크기에 맞춰 스케일 계산
   const imageWidth = backgroundImage ? backgroundImage.width : 800;
@@ -132,7 +132,6 @@ const IslandCanvas = ({
   
   const scaleX = gridDisplayWidth / imageWidth;
   const scaleY = gridDisplayHeight / imageHeight;
-  const baseScale = Math.min(scaleX, scaleY);
   const drawGrid = () => {
     if (!backgroundImage) return [];
     
@@ -420,9 +419,9 @@ const IslandCanvas = ({
           const newPaintData = { ...paintData };
           let hasChanges = false;
           
-          const offset = Math.floor(brushSize / 2);
-          for (let dx = 0; dx < brushSize; dx++) {
-            for (let dy = 0; dy < brushSize; dy++) {
+          const offset = Math.floor(1 / 2);
+          for (let dx = 0; dx < 1; dx++) {
+            for (let dy = 0; dy < 1; dy++) {
               const eraseX = gridX - offset + dx;
               const eraseY = gridY - offset + dy;
               
@@ -481,7 +480,7 @@ const IslandCanvas = ({
   };
   
   const handleMouseUp = (e) => {
-    const stage = e.target.getStage();
+    // const stage = e.target.getStage();
 
     setIsDragging(false);
     setLastPointerPos(null);

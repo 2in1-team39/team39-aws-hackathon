@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Stage, Layer, Image as KonvaImage, Rect, Line } from 'react-konva';
-import { GRID_CONFIG } from '../../constants/gridConfig';
+import { Stage, Layer, Image as KonvaImage, Line } from 'react-konva';
 
 const ImageCropper = ({ image, onCropComplete, onCancel }) => {
   const [imageTransform, setImageTransform] = useState({ x: 0, y: 0, scaleX: 1, scaleY: 1 });
@@ -24,6 +23,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
           break;
         case 'ArrowRight':
           setImageTransform(prev => ({ ...prev, x: prev.x + moveStep }));
+          break;
+        default:
           break;
       }
     };

@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import CompactToolPanel from '../Tools/CompactToolPanel';
 import ObjectPanel from '../Tools/ObjectPanel';
 import ChecklistPanel from '../Tools/ChecklistPanel';
-import ImageUpload from '../Upload/ImageUpload';
 
 const FloatingToolbar = ({
   step,

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import './App.css';
 import './index.css';
 import IslandCanvas from './components/Canvas/IslandCanvas';
@@ -6,7 +6,7 @@ import FloatingToolbar from './components/UI/FloatingToolbar';
 import ImageUpload from './components/Upload/ImageUpload';
 import ImageCropper from './components/Upload/ImageCropper';
 import { useCanvas } from './hooks/useCanvas';
-import { TOOLS, PAINT_COLORS, BRUSH_TYPES } from './constants/objectTypes';
+import { TOOLS, PAINT_COLORS } from './constants/objectTypes';
 import { GRID_CONFIG } from './constants/gridConfig';
 import { isValidGridPosition } from './utils/gridUtils';
 
@@ -66,7 +66,7 @@ function App() {
   // 앱 시작 시 저장된 데이터 로드
   React.useEffect(() => {
     loadFromLocalStorage();
-  }, []);
+  }, [loadFromLocalStorage]);
 
   // 자동 저장: 주요 상태가 변경될 때마다 저장
   React.useEffect(() => {
@@ -75,7 +75,7 @@ function App() {
     }, 1000); // 1초 후 저장 (디바운싱)
 
     return () => clearTimeout(timeoutId);
-  }, [objects, paintData, backgroundImage, selectedColor, brushSize, currentBrushType, currentTool, zoomLevel, stagePos, step]);
+  }, [objects, paintData, backgroundImage, selectedColor, brushSize, currentBrushType, currentTool, zoomLevel, stagePos, step, saveToLocalStorage]);
 
   // 브러시 크기 변경 시 커서 업데이트 트리거
   const handleBrushSizeChange = (size) => {
@@ -266,7 +266,7 @@ function App() {
   };
   
   // HappyIslandDesigner 브러시 시스템에 맞춘 커서 생성 함수
-  const generateBrushCursor = () => {
+  const generateBrushCursor = useCallback(() => {
     if (!backgroundImage) return 'crosshair';
 
     // HappyIslandDesigner 브러시 시스템에서 실제 브러시 크기와 타입 가져오기
@@ -318,7 +318,7 @@ function App() {
 
     // 기본값
     return 'crosshair';
-  };
+  }, [backgroundImage, selectedColor, zoomLevel]);
 
   // 도구 변경 시 커서 업데이트
   React.useEffect(() => {
@@ -347,10 +347,10 @@ function App() {
         }
       }
     }
-  }, [currentTool, brushSize, selectedColor, currentBrushType, isSpacePressed, isRightPressed, isEyedropperActive, zoomLevel, backgroundImage, brushUpdateTrigger]);
+  }, [currentTool, brushSize, selectedColor, currentBrushType, isSpacePressed, isRightPressed, isEyedropperActive, zoomLevel, backgroundImage, brushUpdateTrigger, generateBrushCursor, stageRef]);
 
   // localStorage에 자동 저장
-  const saveToLocalStorage = () => {
+  const saveToLocalStorage = useCallback(() => {
     try {
       const projectData = {
         objects,
@@ -371,10 +371,10 @@ function App() {
     } catch (error) {
       console.error('자동 저장 실패:', error);
     }
-  };
+  }, [objects, paintData, backgroundImage, selectedColor, brushSize, currentBrushType, currentTool, zoomLevel, stagePos, step]);
 
   // localStorage에서 불러오기
-  const loadFromLocalStorage = () => {
+  const loadFromLocalStorage = useCallback(() => {
     try {
       const savedData = localStorage.getItem('island-designer-autosave');
       if (savedData) {
@@ -408,7 +408,7 @@ function App() {
       console.error('불러오기 실패:', error);
     }
     return false;
-  };
+  }, [setObjects, setPaintData, setSelectedColor, setBrushSize, setCurrentBrushType, setCurrentTool, setZoomLevel, setStagePos, setStep, setBackgroundImage, setUploadedImage]);
 
   // 저장된 데이터 삭제
   const clearSavedData = () => {

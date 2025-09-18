@@ -13,50 +13,118 @@
   font-weight: 600;
 }
 
-.brush-grid {
+.brush-type-controls {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 6px;
+  margin-bottom: 15px;
 }
 
-.brush-btn {
+.brush-type-btn {
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 6px 4px;
+  padding: 8px 12px;
   border: 2px solid #ddd;
   border-radius: 6px;
   background: white;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-height: 55px;
+  font-size: 14px;
+  font-weight: 500;
 }
 
-.brush-btn:hover {
+.brush-type-btn:hover {
   background: #f5f5f5;
   border-color: #bbb;
   transform: translateY(-1px);
 }
 
-.brush-btn.active {
+.brush-type-btn.active {
   background: #e3f2fd;
   border-color: #2196f3;
   box-shadow: 0 2px 6px rgba(33, 150, 243, 0.3);
+  color: #2196f3;
 }
 
-.brush-icon {
-  font-size: 18px;
-  margin-bottom: 2px;
+.brush-size-controls {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 8px;
 }
 
-.brush-label {
-  font-size: 10px;
+.size-btn {
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  font-weight: bold;
+  min-width: 40px;
+}
+
+.size-btn:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+}
+
+.size-display {
+  padding: 8px 12px;
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 500;
+  color: #333;
+}
+
+.size-info {
+  font-size: 11px;
   color: #666;
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.line-mode-section {
+  margin-top: 15px;
+  padding-top: 12px;
+  border-top: 1px solid #eee;
+}
+
+.line-mode-controls {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+}
+
+.mode-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 12px;
   font-weight: 500;
 }
 
-.brush-btn.active .brush-label {
-  color: #2196f3;
-  font-weight: 600;
+.mode-btn:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+  transform: translateY(-1px);
+}
+
+.mode-btn.active {
+  background: #fff3e0;
+  border-color: #ff9800;
+  color: #ff9800;
+  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
 }

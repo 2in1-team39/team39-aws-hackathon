@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import CompactToolPanel from '../Tools/CompactToolPanel';
 import ObjectPanel from '../Tools/ObjectPanel';
+import ChecklistPanel from '../Tools/ChecklistPanel';
 import ImageUpload from '../Upload/ImageUpload';
 
-const FloatingToolbar = ({ 
+const FloatingToolbar = ({
   step,
   currentTool,
   onToolChange,
@@ -13,6 +14,8 @@ const FloatingToolbar = ({
   setBrushSize,
   currentBrushType,
   setCurrentBrushType,
+  isEyedropperActive,
+  onEyedropperToggle,
   selectedObjectType,
   onObjectSelect,
   onImageUpload,
@@ -26,6 +29,7 @@ const FloatingToolbar = ({
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [isObjectsOpen, setIsObjectsOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isChecklistOpen, setIsChecklistOpen] = useState(false);
 
   return (
     <>
@@ -85,6 +89,29 @@ const FloatingToolbar = ({
         )}
 
 
+
+        {/* 체크리스트 버튼 */}
+        {step === 'edit' && (
+          <button
+            onClick={() => setIsChecklistOpen(!isChecklistOpen)}
+            style={{
+              width: '50px',
+              height: '50px',
+              borderRadius: '25px',
+              border: 'none',
+              backgroundColor: isChecklistOpen ? '#9C27B0' : 'white',
+              color: isChecklistOpen ? 'white' : '#333',
+              fontSize: '20px',
+              cursor: 'pointer',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+          >
+            ✅
+          </button>
+        )}
 
         {/* 저장 버튼 */}
         {step === 'edit' && (
@@ -175,6 +202,8 @@ const FloatingToolbar = ({
             setBrushSize={setBrushSize}
             currentBrushType={currentBrushType}
             setCurrentBrushType={setCurrentBrushType}
+            isEyedropperActive={isEyedropperActive}
+            onEyedropperToggle={onEyedropperToggle}
             selectedObjectType={selectedObjectType}
             onObjectSelect={onObjectSelect}
           />
@@ -199,6 +228,18 @@ const FloatingToolbar = ({
             selectedObjectType={selectedObjectType}
             onObjectSelect={onObjectSelect}
           />
+        </div>
+      )}
+
+      {/* 체크리스트 패널 */}
+      {isChecklistOpen && step === 'edit' && (
+        <div style={{
+          position: 'fixed',
+          top: '80px',
+          left: '140px',
+          zIndex: 999
+        }}>
+          <ChecklistPanel />
         </div>
       )}
 
@@ -270,7 +311,7 @@ const FloatingToolbar = ({
       )}
 
       {/* 배경 클릭 시 패널 닫기 */}
-      {isHelpOpen && (
+      {(isHelpOpen || isChecklistOpen) && (
         <div
           style={{
             position: 'fixed',
@@ -282,6 +323,7 @@ const FloatingToolbar = ({
           }}
           onClick={() => {
             setIsHelpOpen(false);
+            setIsChecklistOpen(false);
           }}
         />
       )}

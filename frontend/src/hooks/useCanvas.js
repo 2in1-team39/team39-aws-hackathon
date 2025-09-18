@@ -8,7 +8,10 @@ export const useCanvas = () => {
   const [paintData, setPaintData] = useState({});
   const [selectedColor, setSelectedColor] = useState(PAINT_COLORS.WATER);
   const [brushSize, setBrushSize] = useState(1);
-  const [currentBrushType, setCurrentBrushType] = useState(BRUSH_TYPES.AUTO);
+  const [currentBrushType, setCurrentBrushType] = useState(BRUSH_TYPES.SQUARE);
+  const [isLineMode, setIsLineMode] = useState(false);
+  const [isEyedropperActive, setIsEyedropperActive] = useState(false);
+  const [lineStartPos, setLineStartPos] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [stagePos, setStagePos] = useState(() => {
     const width = window.innerWidth;
@@ -64,6 +67,12 @@ export const useCanvas = () => {
     setBrushSize,
     currentBrushType,
     setCurrentBrushType,
+    isLineMode,
+    setIsLineMode,
+    isEyedropperActive,
+    setIsEyedropperActive,
+    lineStartPos,
+    setLineStartPos,
     isDragging,
     setIsDragging,
     stagePos,

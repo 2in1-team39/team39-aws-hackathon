@@ -19,8 +19,12 @@ export const PAINT_COLORS = {
 
 export const BRUSH_TYPES = {
   SQUARE: 'square',
-  SQUARE_2X2: 'square-2x2', // 2x2 사각형
-  DIAMOND_2X2: 'diamond-2x2' // 2x2 다이아몬드
+  ROUNDED: 'rounded',
+  // 삼각형 타입들 (내부적으로 사용)
+  TRIANGLE_TL: 'triangle-tl',
+  TRIANGLE_TR: 'triangle-tr',
+  TRIANGLE_BL: 'triangle-bl',
+  TRIANGLE_BR: 'triangle-br'
 };
 
 export const TOOLS = {

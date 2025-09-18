@@ -1,15 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { Stage, Layer, Rect, Line, Image as KonvaImage, Group } from 'react-konva';
+import { Stage, Layer, Rect, Line, Image as KonvaImage, Group, Path } from 'react-konva';
 import { GRID_CONFIG, COLORS } from '../../constants/gridConfig';
 import { TOOLS, BRUSH_TYPES } from '../../constants/objectTypes';
-import { pixelToGrid } from '../../utils/gridUtils';
 import {
-  getSubGridPosition,
-  paintSquareCell,
-  erasePaintCell,
-  paint2x2Cell,
-  getDiamond2x2Triangles
+  createTrianglePath,
+  erasePaintCell
 } from '../../utils/trianglePainting';
+import { happyBrush, paintWithHappyBrush } from '../../utils/happyIslandBrush';
 
 const ObjectImage = ({ x, y, width, height, imageSrc }) => {
   const [image, setImage] = useState(null);
@@ -48,10 +45,10 @@ const ObjectImage = ({ x, y, width, height, imageSrc }) => {
   );
 };
 
-const IslandCanvas = ({ 
-  backgroundImage, 
-  objects, 
-  onCanvasClick, 
+const IslandCanvas = ({
+  backgroundImage,
+  objects,
+  onCanvasClick,
   stageRef,
   currentTool,
   onToolChange,
@@ -79,22 +76,11 @@ const IslandCanvas = ({
   zoomLevel,
   setZoomLevel,
   removeObject,
-  currentBrushType = BRUSH_TYPES.SQUARE
+  currentBrushType = BRUSH_TYPES.SQUARE,
+  isEyedropperActive = false
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   
-  const updateCursor = () => {
-    if (!stageRef.current) return;
-    const stage = stageRef.current;
-    
-    if (currentTool === TOOLS.PAINT) {
-      const size = brushSize * 12;
-      const color = selectedColor ? selectedColor.color.replace('#', '%23') : '%23000000';
-      stage.container().style.cursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
-    } else {
-      stage.container().style.cursor = 'default';
-    }
-  };
   
   useEffect(() => {
     const updateCanvasSize = () => {
@@ -147,7 +133,6 @@ const IslandCanvas = ({
   const scaleX = gridDisplayWidth / imageWidth;
   const scaleY = gridDisplayHeight / imageHeight;
   const baseScale = Math.min(scaleX, scaleY);
-  const finalScale = baseScale * zoomLevel;
   const drawGrid = () => {
     if (!backgroundImage) return [];
     
@@ -285,127 +270,61 @@ const IslandCanvas = ({
     setZoomLevel(clampedScale);
   };
   
-  const paintCells = (gridX, gridY, imageX, imageY, isLine = false) => {
+  const paintCells = (gridX, gridY, imageX, imageY) => {
     if (!backgroundImage) return;
-    
+
     let newPaintData = { ...paintData };
-    const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
     let cellsToPaint = [];
-    
-    if (isLine && lastPaintPos) {
-      // 직선 그리기
+
+    // 이전 위치가 있으면 항상 보간하여 연속성 보장
+    if (lastPaintPos) {
+      // Bresenham's line algorithm으로 이전 위치와 현재 위치 사이 보간
       const dx = Math.abs(gridX - lastPaintPos.x);
       const dy = Math.abs(gridY - lastPaintPos.y);
       const sx = lastPaintPos.x < gridX ? 1 : -1;
       const sy = lastPaintPos.y < gridY ? 1 : -1;
       let err = dx - dy;
-      
+
       let x = lastPaintPos.x;
       let y = lastPaintPos.y;
-      
+
       while (true) {
-        cellsToPaint.push({ x, y, imageX, imageY });
+        cellsToPaint.push({ x, y });
         if (x === gridX && y === gridY) break;
         const e2 = 2 * err;
         if (e2 > -dy) { err -= dy; x += sx; }
         if (e2 < dx) { err += dx; y += sy; }
       }
     } else {
-      cellsToPaint.push({ x: gridX, y: gridY, imageX, imageY });
-    }
-    
-    // 다이아몬드 직선 그리기의 끝점 처리 (2x2 삼각형 다이아몬드용)
-    if (isLine && lastPaintPos && currentBrushType === BRUSH_TYPES.DIAMOND_2X2 && selectedColor) {
-      const dx = gridX - lastPaintPos.x;
-      const dy = gridY - lastPaintPos.y;
-      
-      // 방향에 따른 끝점 삼각형 추가
-      if (Math.abs(dx) > Math.abs(dy)) {
-        // 수평 방향
-        if (dx > 0) {
-          // 오른쪽으로 그리기 - 시작점 왼쪽에 삼각형, 끝점 오른쪽에 삼각형
-          const startX = lastPaintPos.x - 1;
-          const endX = gridX + 1;
-          if (startX >= 0) {
-            newPaintData = paintSquareCell(newPaintData, startX, lastPaintPos.y, selectedColor.color);
-          }
-          if (endX < GRID_CONFIG.COLS) {
-            newPaintData = paintSquareCell(newPaintData, endX, gridY, selectedColor.color);
-          }
-        } else {
-          // 왼쪽으로 그리기
-          const startX = lastPaintPos.x + 1;
-          const endX = gridX - 1;
-          if (startX < GRID_CONFIG.COLS) {
-            newPaintData = paintSquareCell(newPaintData, startX, lastPaintPos.y, selectedColor.color);
-          }
-          if (endX >= 0) {
-            newPaintData = paintSquareCell(newPaintData, endX, gridY, selectedColor.color);
-          }
-        }
-      } else {
-        // 수직 방향
-        if (dy > 0) {
-          // 아래쪽으로 그리기
-          const startY = lastPaintPos.y - 1;
-          const endY = gridY + 1;
-          if (startY >= 0) {
-            newPaintData = paintSquareCell(newPaintData, lastPaintPos.x, startY, selectedColor.color);
-          }
-          if (endY < GRID_CONFIG.ROWS) {
-            newPaintData = paintSquareCell(newPaintData, gridX, endY, selectedColor.color);
-          }
-        } else {
-          // 위쪽으로 그리기
-          const startY = lastPaintPos.y + 1;
-          const endY = gridY - 1;
-          if (startY < GRID_CONFIG.ROWS) {
-            newPaintData = paintSquareCell(newPaintData, lastPaintPos.x, startY, selectedColor.color);
-          }
-          if (endY >= 0) {
-            newPaintData = paintSquareCell(newPaintData, gridX, endY, selectedColor.color);
-          }
-        }
-      }
+      // 첫 번째 점
+      cellsToPaint.push({ x: gridX, y: gridY });
     }
 
-    cellsToPaint.forEach(({ x: centerX, y: centerY, imageX: cellImageX, imageY: cellImageY }) => {
-      const offset = Math.floor(brushSize / 2);
-      for (let dx = 0; dx < brushSize; dx++) {
-        for (let dy = 0; dy < brushSize; dy++) {
-          const x = centerX - offset + dx;
-          const y = centerY - offset + dy;
-          
-          if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-            if (currentTool === TOOLS.PAINT && selectedColor) {
-              // 브러시 타입에 따라 페인팅 방식 결정
-              if (currentBrushType === BRUSH_TYPES.SQUARE_2X2 || currentBrushType === BRUSH_TYPES.DIAMOND_2X2) {
-                // 2x2 브러시는 한 번만 적용 (중복 방지)
-                if (x === centerX && y === centerY) {
-                  newPaintData = paint2x2Cell(newPaintData, x, y, currentBrushType, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
-                }
-              } else {
-                // 1x1 사각형 브러시
-                newPaintData = paintSquareCell(newPaintData, x, y, selectedColor.color);
-              }
-            } else if (currentTool === TOOLS.ERASER) {
-              newPaintData = erasePaintCell(newPaintData, x, y);
-              
-              // 오브젝트도 삭제
-              const objectToRemove = objects.find(obj => {
-                const objSize = obj.size || 1;
-                return x >= obj.gridX && x < obj.gridX + objSize &&
-                       y >= obj.gridY && y < obj.gridY + objSize;
-              });
-              if (objectToRemove) {
-                removeObject(objectToRemove.id);
-              }
-            }
+    // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
+    const brushSize = happyBrush.rawBrushSize;
+    // 모든 셀 페인팅 (연속성을 위해)
+    cellsToPaint.forEach(({ x, y }) => {
+      if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
+        if (currentTool === TOOLS.PAINT && selectedColor) {
+          // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
+          happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
+          newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
+        } else if (currentTool === TOOLS.ERASER) {
+          newPaintData = erasePaintCell(newPaintData, x, y);
+
+          // 오브젝트도 삭제
+          const objectToRemove = objects.find(obj => {
+            const objSize = obj.size || 1;
+            return x >= obj.gridX && x < obj.gridX + objSize &&
+                   y >= obj.gridY && y < obj.gridY + objSize;
+          });
+          if (objectToRemove) {
+            removeObject(objectToRemove.id);
           }
         }
       }
     });
-    
+
     setPaintData(newPaintData);
   };
   
@@ -455,7 +374,7 @@ const IslandCanvas = ({
         const gridY = Math.floor(imageY / (cellSize * zoomLevel));
         
         if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
-          paintCells(gridX, gridY, imageX, imageY, isShiftPressed && lastPaintPos);
+          paintCells(gridX, gridY, imageX, imageY);
           if (!isShiftPressed) {
             setLastPaintPos({ x: gridX, y: gridY });
           }
@@ -536,46 +455,43 @@ const IslandCanvas = ({
       return;
     }
     
+    // 실시간 페인팅
     if (isDragging && (currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER) && !isSpacePressed && currentTool !== TOOLS.OBJECT) {
       if (backgroundImage) {
         // 이미지 시작 위치 계산
         const imageStartX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
         const imageStartY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y;
-        
+
         // 이미지 내에서의 좌표
         const imageX = pos.x - imageStartX;
         const imageY = pos.y - imageStartY;
-        
+
         const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
         const gridX = Math.floor(imageX / (cellSize * zoomLevel));
         const gridY = Math.floor(imageY / (cellSize * zoomLevel));
-        
+
         if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
-          // 이전 위치와 현재 위치 사이의 모든 점을 칠하기
-          if (lastPaintPos) {
-            paintCells(gridX, gridY, imageX, imageY, true); // 직선 그리기 사용
-          } else {
-            paintCells(gridX, gridY, imageX, imageY, false);
-          }
+          // 자유 그리기: 이전 위치와 현재 위치 사이 보간하여 연속성 보장
+          paintCells(gridX, gridY, imageX, imageY);
           setLastPaintPos({ x: gridX, y: gridY });
         }
       }
     }
-    
 
   };
   
   const handleMouseUp = (e) => {
     const stage = e.target.getStage();
+
     setIsDragging(false);
     setLastPointerPos(null);
-    
+
     // 오른쪽 버튼 해제 시 원래 도구로 복귀
     if (isRightPressed && e.evt.button === 2) {
       onToolChange(TOOLS.PAINT); // 기본적으로 페인트로 복귀
     }
     setIsRightPressed(false);
-    
+
     if (!isShiftPressed) {
       setLastPaintPos(null);
     }
@@ -669,6 +585,19 @@ const IslandCanvas = ({
             }
 
 
+            // 새로운 구조 - 삼각형들
+            if (paintInfo.type === 'triangles') {
+              return Object.entries(paintInfo.triangles).map(([triangleType, color]) => (
+                <Path
+                  key={`${key}-${triangleType}`}
+                  x={baseX}
+                  y={baseY}
+                  data={createTrianglePath(triangleType, cellSize * zoomLevel)}
+                  fill={color}
+                  opacity={1}
+                />
+              ));
+            }
 
             return null;
           })}
@@ -736,6 +665,7 @@ const IslandCanvas = ({
         <Layer>
           {drawGrid()}
         </Layer>
+
         </Stage>
       )}
     </div>

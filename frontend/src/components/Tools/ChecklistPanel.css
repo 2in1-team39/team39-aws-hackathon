@@ -1,0 +1,231 @@
+.checklist-panel {
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  min-width: 300px;
+  max-width: 400px;
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.checklist-panel h4 {
+  margin: 0 0 16px 0;
+  font-size: 16px;
+  color: #333;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* 새 항목 추가 섹션 */
+.add-item-section {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.add-input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 2px solid #e0e0e0;
+  border-radius: 6px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.add-input:focus {
+  border-color: #9C27B0;
+}
+
+.add-btn {
+  padding: 8px 16px;
+  background: #9C27B0;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.add-btn:hover {
+  background: #7B1FA2;
+}
+
+/* 체크리스트 항목들 */
+.checklist-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.empty-state {
+  text-align: center;
+  color: #999;
+  font-style: italic;
+  padding: 20px;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f8f8f8;
+  border-radius: 8px;
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.checklist-item:hover {
+  background: #f0f0f0;
+  border-color: #e0e0e0;
+}
+
+.checklist-item.completed {
+  opacity: 0.7;
+  background: #e8f5e8;
+}
+
+.item-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.item-checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #9C27B0;
+}
+
+.item-text {
+  flex: 1;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  word-break: break-word;
+  user-select: none;
+}
+
+.checklist-item.completed .item-text {
+  text-decoration: line-through;
+  color: #666;
+}
+
+.edit-input {
+  flex: 1;
+  padding: 4px 8px;
+  border: 1px solid #9C27B0;
+  border-radius: 4px;
+  font-size: 14px;
+  outline: none;
+}
+
+/* 버튼 액션들 */
+.item-actions {
+  display: flex;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.item-actions button {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.edit-btn {
+  background: #2196F3;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #1976D2;
+}
+
+.delete-btn {
+  background: #f44336;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #d32f2f;
+}
+
+.save-btn {
+  background: #4CAF50;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #388E3C;
+}
+
+.cancel-btn {
+  background: #ff9800;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #F57C00;
+}
+
+/* 진행률 섹션 */
+.progress-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e0e0e0;
+}
+
+.progress-text {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.progress-bar {
+  height: 6px;
+  background: #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #9C27B0, #7B1FA2);
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+/* 스크롤바 스타일링 */
+.checklist-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.checklist-panel::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.checklist-panel::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.checklist-panel::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

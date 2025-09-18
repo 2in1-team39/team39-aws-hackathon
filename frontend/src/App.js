@@ -6,7 +6,7 @@ import FloatingToolbar from './components/UI/FloatingToolbar';
 import ImageUpload from './components/Upload/ImageUpload';
 import ImageCropper from './components/Upload/ImageCropper';
 import { useCanvas } from './hooks/useCanvas';
-import { TOOLS, PAINT_COLORS } from './constants/objectTypes';
+import { TOOLS, PAINT_COLORS, BRUSH_TYPES } from './constants/objectTypes';
 import { GRID_CONFIG } from './constants/gridConfig';
 import { isValidGridPosition } from './utils/gridUtils';
 
@@ -28,6 +28,12 @@ function App() {
     setBrushSize,
     currentBrushType,
     setCurrentBrushType,
+    isLineMode,
+    setIsLineMode,
+    isEyedropperActive,
+    setIsEyedropperActive,
+    lineStartPos,
+    setLineStartPos,
     isDragging,
     setIsDragging,
     stagePos,
@@ -54,10 +60,66 @@ function App() {
   } = useCanvas();
 
   const [selectedObjectType, setSelectedObjectType] = useState(null);
+  const [brushUpdateTrigger, setBrushUpdateTrigger] = useState(0);
+
+  // 브러시 크기 변경 시 커서 업데이트 트리거
+  const handleBrushSizeChange = (size) => {
+    setBrushSize(size);
+    setBrushUpdateTrigger(prev => prev + 1);
+  };
+
+  // 브러시 타입 변경 시 커서 업데이트 트리거
+  const handleBrushTypeChange = (type) => {
+    setCurrentBrushType(type);
+    setBrushUpdateTrigger(prev => prev + 1);
+  };
+
+  // 스포이드 기능을 위한 색상 추출 함수
+  const extractColorFromCanvas = (x, y) => {
+    if (!stageRef.current || !backgroundImage) return null;
+
+    const stage = stageRef.current;
+    const canvas = stage.toCanvas();
+    const ctx = canvas.getContext('2d');
+
+    // 픽셀 데이터 가져오기
+    const imageData = ctx.getImageData(x, y, 1, 1);
+    const [r, g, b] = imageData.data;
+
+    // RGB를 hex로 변환
+    const hex = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    return hex;
+  };
+
+  // 스포이드 토글 함수
+  const handleEyedropperToggle = () => {
+    setIsEyedropperActive(!isEyedropperActive);
+  };
+
+  // 직선 모드 토글 함수
+  const handleLineModeToggle = (isLine) => {
+    setIsLineMode(isLine);
+    setLineStartPos(null); // 직선 시작점 초기화
+  };
 
   const handleCanvasClick = (gridX, gridY, pixelX, pixelY, isRightClick = false) => {
     console.log('Canvas click - Current tool:', currentTool, 'Selected object:', selectedObjectType);
     if (!isValidGridPosition(gridX, gridY)) return;
+
+    // 스포이드 모드일 때 색상 추출
+    if (isEyedropperActive && !isRightClick) {
+      const extractedColor = extractColorFromCanvas(pixelX, pixelY);
+      if (extractedColor) {
+        const customColorObj = {
+          id: 'custom',
+          name: '추출된 색상',
+          color: extractedColor
+        };
+        setSelectedColor(customColorObj);
+        setIsEyedropperActive(false); // 스포이드 모드 종료
+      }
+      return;
+    }
 
     // 오른쪽 클릭 시 삭제 기능
     if (isRightClick) {
@@ -188,25 +250,76 @@ function App() {
     setCurrentTool(TOOLS.OBJECT);
   };
   
+  // HappyIslandDesigner 브러시 시스템에 맞춘 커서 생성 함수
+  const generateBrushCursor = () => {
+    if (!backgroundImage) return 'crosshair';
+
+    // HappyIslandDesigner 브러시 시스템에서 실제 브러시 크기와 타입 가져오기
+    const { happyBrush } = require('./utils/happyIslandBrush');
+    const rawBrushSize = happyBrush.rawBrushSize;
+    const brushType = happyBrush.brushType;
+
+    const cellSize = Math.min(backgroundImage.width / 112, backgroundImage.height / 96) * zoomLevel;
+    const color = selectedColor ? selectedColor.color.replace('#', '%23') : '%23000000';
+
+    // 크기 0 (삼각형 브러시)
+    if (rawBrushSize === 0) {
+      const size = Math.max(8, cellSize);
+      return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Cpath d='M${size/2},0 L${size},${size} L0,${size} Z' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+    }
+
+    // 크기 1 (1x1 사각형)
+    if (rawBrushSize === 1) {
+      const size = Math.max(8, cellSize);
+      return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+    }
+
+    // 크기 2
+    if (rawBrushSize === 2) {
+      const size = Math.max(16, cellSize * 2);
+
+      if (brushType === 'rounded') {
+        // 다이아몬드 모양
+        const half = size / 2;
+        return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Cpath d='M${half},0 L${size},${half} L${half},${size} L0,${half} Z' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${half} ${half}, crosshair`;
+      } else {
+        // 2x2 사각형
+        return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+      }
+    }
+
+    // 크기 3+
+    if (rawBrushSize >= 3) {
+      const size = Math.max(24, cellSize * rawBrushSize);
+
+      if (brushType === 'rounded') {
+        // 팔각형 모양 (간단화해서 원형으로 표시)
+        return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Ccircle cx='${size/2}' cy='${size/2}' r='${size/2-1}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+      } else {
+        // 사각형
+        return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+      }
+    }
+
+    // 기본값
+    return 'crosshair';
+  };
+
   // 도구 변경 시 커서 업데이트
   React.useEffect(() => {
     if (stageRef.current) {
       const stage = stageRef.current;
-      
+
       if (isSpacePressed) {
         stage.container().style.cursor = 'grab';
       } else if (isRightPressed) {
         stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ff6b6b\' d=\'M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l8.48-8.48c.79-.78 2.05-.78 2.84 0l2.11 2.12zm-1.41 1.41L12.7 7.1 16.9 11.3l2.12-2.12-4.19-4.21z\'/%3E%3Cpath fill=\'%23ffa8a8\' d=\'M12.7 7.1L8.51 11.3 12.7 15.5 16.9 11.3 12.7 7.1z\'/%3E%3C/svg%3E") 12 12, auto';
+      } else if (isEyedropperActive) {
+        stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23007bff\' d=\'M19.35 11.72l-9.5-9.5a1 1 0 0 0-1.41 0L7.39 3.27a1 1 0 0 0 0 1.41l1.45 1.45-5.66 5.66a1 1 0 0 0-.29.71v5a1 1 0 0 0 1 1h5a1 1 0 0 0 .71-.29l5.66-5.66 1.45 1.45a1 1 0 0 0 1.41 0l1.05-1.05a1 1 0 0 0 0-1.41zm-8.5-6.2l1.79 1.79-1.41 1.41L9.44 6.93l1.41-1.41zM8.5 14.5H5v-3.5L8.5 14.5z\'/%3E%3C/svg%3E") 12 12, auto';
       } else {
         switch (currentTool) {
           case TOOLS.PAINT:
-            let size = brushSize * 8;
-            if (backgroundImage) {
-              const cellSize = Math.min(backgroundImage.width / 112, backgroundImage.height / 96);
-              size = Math.max(8, Math.min(64, brushSize * cellSize * zoomLevel));
-            }
-            const color = selectedColor ? selectedColor.color.replace('#', '%23') : '%23000000';
-            stage.container().style.cursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+            stage.container().style.cursor = generateBrushCursor();
             break;
           case TOOLS.ERASER:
             stage.container().style.cursor = 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'24\' height=\'24\' viewBox=\'0 0 24 24\'%3E%3Cpath fill=\'%23ff6b6b\' d=\'M16.24 3.56l4.95 4.94c.78.79.78 2.05 0 2.84L12 20.53a4.008 4.008 0 0 1-5.66 0L2.81 17c-.78-.79-.78-2.05 0-2.84l8.48-8.48c.79-.78 2.05-.78 2.84 0l2.11 2.12zm-1.41 1.41L12.7 7.1 16.9 11.3l2.12-2.12-4.19-4.21z\'/%3E%3Cpath fill=\'%23ffa8a8\' d=\'M12.7 7.1L8.51 11.3 12.7 15.5 16.9 11.3 12.7 7.1z\'/%3E%3C/svg%3E") 12 12, auto';
@@ -215,18 +328,11 @@ function App() {
             stage.container().style.cursor = 'pointer';
             break;
           default:
-            // 기본은 페인트 도구
-            let defaultSize = brushSize * 8;
-            if (backgroundImage) {
-              const cellSize = Math.min(backgroundImage.width / 112, backgroundImage.height / 96);
-              defaultSize = Math.max(8, Math.min(64, brushSize * cellSize * zoomLevel));
-            }
-            const defaultColor = selectedColor ? selectedColor.color.replace('#', '%23') : '%23000000';
-            stage.container().style.cursor = `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${defaultSize}' height='${defaultSize}' viewBox='0 0 ${defaultSize} ${defaultSize}'%3E%3Crect width='${defaultSize}' height='${defaultSize}' fill='${defaultColor}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${defaultSize/2} ${defaultSize/2}, crosshair`;
+            stage.container().style.cursor = generateBrushCursor();
         }
       }
     }
-  }, [currentTool, brushSize, selectedColor, isSpacePressed, isRightPressed, zoomLevel, backgroundImage]);
+  }, [currentTool, brushSize, selectedColor, currentBrushType, isSpacePressed, isRightPressed, isEyedropperActive, zoomLevel, backgroundImage, brushUpdateTrigger]);
 
   const handleSaveProject = () => {
     const projectData = {
@@ -258,9 +364,13 @@ function App() {
         selectedColor={selectedColor}
         onColorSelect={setSelectedColor}
         brushSize={brushSize}
-        setBrushSize={setBrushSize}
+        setBrushSize={handleBrushSizeChange}
         currentBrushType={currentBrushType}
-        setCurrentBrushType={setCurrentBrushType}
+        setCurrentBrushType={handleBrushTypeChange}
+        isLineMode={isLineMode}
+        onLineModeToggle={handleLineModeToggle}
+        isEyedropperActive={isEyedropperActive}
+        onEyedropperToggle={handleEyedropperToggle}
         selectedObjectType={selectedObjectType}
         onObjectSelect={handleObjectSelect}
         onImageUpload={handleImageUpload}
@@ -303,6 +413,10 @@ function App() {
           selectedColor={selectedColor}
           brushSize={brushSize}
           currentBrushType={currentBrushType}
+          isLineMode={isLineMode}
+          isEyedropperActive={isEyedropperActive}
+          lineStartPos={lineStartPos}
+          setLineStartPos={setLineStartPos}
           isDragging={isDragging}
           setIsDragging={setIsDragging}
           stagePos={stagePos}

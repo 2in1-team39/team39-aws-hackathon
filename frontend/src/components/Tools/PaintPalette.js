@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { PAINT_COLORS } from '../../constants/objectTypes';
 
-const PaintPalette = ({ selectedColor, onColorSelect, brushSize, setBrushSize }) => {
+const PaintPalette = ({ selectedColor, onColorSelect, onEyedropperToggle, isEyedropperActive }) => {
   const [customColor, setCustomColor] = useState('#000000');
   const [showColorPicker, setShowColorPicker] = useState(false);
 
@@ -101,6 +101,28 @@ const PaintPalette = ({ selectedColor, onColorSelect, brushSize, setBrushSize })
               {customColor}
             </span>
           </div>
+
+          <div style={{ marginBottom: '10px' }}>
+            <button
+              onClick={onEyedropperToggle}
+              style={{
+                padding: '5px 15px',
+                backgroundColor: isEyedropperActive ? '#007bff' : '#f8f9fa',
+                color: isEyedropperActive ? 'white' : '#333',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '12px',
+                marginRight: '10px'
+              }}
+            >
+              🎨 스포이드
+            </button>
+            <span style={{ fontSize: '11px', color: '#666' }}>
+              {isEyedropperActive ? '캔버스에서 색상을 클릭하세요' : '색상을 추출하려면 스포이드를 활성화하세요'}
+            </span>
+          </div>
+
           <button
             onClick={handleCustomColorSelect}
             style={{
@@ -118,20 +140,6 @@ const PaintPalette = ({ selectedColor, onColorSelect, brushSize, setBrushSize })
           </button>
         </div>
       )}
-      
-      <div>
-        <label style={{ fontSize: '14px', marginBottom: '5px', display: 'block' }}>
-          브러시 크기: {brushSize}x{brushSize}
-        </label>
-        <input
-          type="range"
-          min="1"
-          max="5"
-          value={brushSize}
-          onChange={(e) => setBrushSize(parseInt(e.target.value))}
-          style={{ width: '100%' }}
-        />
-      </div>
     </div>
   );
 };

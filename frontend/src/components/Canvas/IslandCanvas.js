@@ -83,7 +83,7 @@ const IslandCanvas = ({
   const [lastTouchDistance, setLastTouchDistance] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
   const [touchStartTime, setTouchStartTime] = useState(null);
-  const [isDragging, setIsDraggingLocal] = useState(false);
+  const [isTouchDragging, setIsTouchDragging] = useState(false);
   const [touchStartStagePos, setTouchStartStagePos] = useState(null);
   
   
@@ -291,7 +291,7 @@ const IslandCanvas = ({
       setTouchStartPos({ x: touch.clientX, y: touch.clientY });
       setTouchStartTime(Date.now());
       setTouchStartStagePos({ ...stagePos });
-      setIsDraggingLocal(false);
+      setIsTouchDragging(false);
     } else if (touchCount === 2) {
       // 두 손가락 터치: 줌 준비
       const distance = getTouchDistance(e.evt.touches);
@@ -311,11 +311,11 @@ const IslandCanvas = ({
       const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
       // 10px 이상 움직이면 드래그 모드로 전환
-      if (distance > 10 && !isDragging) {
-        setIsDraggingLocal(true);
+      if (distance > 10 && !isTouchDragging) {
+        setIsTouchDragging(true);
       }
 
-      if (isDragging || distance > 10) {
+      if (isTouchDragging || distance > 10) {
         e.evt.preventDefault();
         setStagePos({
           x: touchStartStagePos.x + deltaX,
@@ -362,13 +362,13 @@ const IslandCanvas = ({
   };
 
   const handleTouchEnd = (e) => {
-    if (touchStartPos && touchStartTime && !isDragging) {
+    if (touchStartPos && touchStartTime && !isTouchDragging) {
       // 짧은 탭: 그리기/지우기
       const touchDuration = Date.now() - touchStartTime;
 
       if (touchDuration > 500) {
         // 길게 누르기: 지우개 모드
-        handleCanvasClick({
+        handleStageClick({
           ...e,
           evt: {
             ...e.evt,
@@ -377,14 +377,14 @@ const IslandCanvas = ({
         });
       } else {
         // 짧은 탭: 일반 클릭
-        handleCanvasClick(e);
+        handleStageClick(e);
       }
     }
 
     // 상태 초기화
     setTouchStartPos(null);
     setTouchStartTime(null);
-    setIsDraggingLocal(false);
+    setIsTouchDragging(false);
     setTouchStartStagePos(null);
     if (e.evt.touches.length < 2) {
       setLastTouchDistance(null);

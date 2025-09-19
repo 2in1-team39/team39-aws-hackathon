@@ -127,13 +127,11 @@ const IslandCanvas = ({
   }, [setIsSpacePressed, setIsShiftPressed, setLastPaintPos]);
   
   // 이미지 크기에 맞춰 스케일 계산
-  const imageWidth = backgroundImage ? backgroundImage.width : 800;
-  const imageHeight = backgroundImage ? backgroundImage.height : 600;
-  
+  // const imageWidth = backgroundImage ? backgroundImage.width : 800;
+  // const imageHeight = backgroundImage ? backgroundImage.height : 600;
 
-  
-  const gridDisplayWidth = canvasSize.width * 0.9;
-  const gridDisplayHeight = canvasSize.height * 0.9;
+  // const gridDisplayWidth = canvasSize.width * 0.9;
+  // const gridDisplayHeight = canvasSize.height * 0.9;
   
 
   const drawGrid = () => {

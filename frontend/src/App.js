@@ -446,8 +446,21 @@ function App() {
     URL.revokeObjectURL(url);
   };
 
+  // 디바이스 감지
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  const isTablet = isTouchDevice && (window.innerWidth >= 768 && window.innerWidth <= 1024);
+
   return (
-    <div style={{ width: '100vw', height: '100vh', backgroundColor: '#7AD8C6' }}>
+    <div style={{
+      width: '100vw',
+      height: '100vh',
+      backgroundColor: '#7AD8C6',
+      overflow: 'hidden', // 아이패드에서 스크롤 방지
+      touchAction: isTablet ? 'none' : 'auto', // 터치 제스처 제어
+      WebkitTouchCallout: 'none', // iOS 길게 누르기 메뉴 비활성화
+      WebkitUserSelect: 'none', // 텍스트 선택 방지
+      userSelect: 'none'
+    }}>
       <FloatingToolbar
         step={step}
         currentTool={currentTool}

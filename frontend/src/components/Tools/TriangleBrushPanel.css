@@ -128,3 +128,65 @@
   color: #ff9800;
   box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
 }
+
+/* 태블릿용 반응형 스타일 */
+@media (max-width: 1024px) and (min-width: 768px) {
+  .triangle-brush-panel {
+    padding: 16px;
+    margin: 12px 0;
+  }
+
+  .triangle-brush-panel h4 {
+    font-size: 18px;
+    margin: 0 0 12px 0;
+  }
+
+  .brush-type-controls {
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .brush-type-btn {
+    padding: 12px 16px;
+    font-size: 16px;
+    min-height: 50px;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .brush-size-controls {
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .size-btn {
+    padding: 12px 16px;
+    font-size: 20px;
+    min-width: 50px;
+    min-height: 50px;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .size-display {
+    padding: 12px 16px;
+    font-size: 16px;
+    border-radius: 8px;
+  }
+
+  .size-info {
+    font-size: 14px;
+    margin-bottom: 20px;
+  }
+
+  .mode-btn {
+    padding: 12px 16px;
+    font-size: 16px;
+    min-height: 50px;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+}

@@ -97,6 +97,17 @@ const FloatingToolbar = ({
           </button>
         )}
         
+        {/* 지우개 버튼 */}
+        {step === 'edit' && (
+          <button
+            onClick={() => onToolChange('eraser')}
+            style={getButtonStyle(currentTool === 'eraser', 'white', '#f44336')}
+            title="지우개"
+          >
+            🧽
+          </button>
+        )}
+
         {/* 오브젝트 버튼 */}
         {step === 'edit' && (
           <button
@@ -269,10 +280,21 @@ const FloatingToolbar = ({
           {step === 'edit' && (
             <ul style={{ margin: 0, paddingLeft: isTablet ? '30px' : '20px', fontSize: isTablet ? '16px' : '12px', lineHeight: isTablet ? '1.6' : '1.4' }}>
               <li>🎨 버튼으로 도구를 선택하세요</li>
-              <li>격자를 클릭하여 페인트/오브젝트 배치</li>
-              <li>오른쪽 클릭으로 삭제</li>
-              <li>스페이스바 + 드래그로 지도 이동</li>
-              <li>마우스 휠로 줌 인/아웃</li>
+              <li>🧽 지우개 버튼으로 지우개 도구 선택</li>
+              <li>격자를 탭하여 페인트/오브젝트 배치</li>
+              {isTablet ? (
+                <>
+                  <li>길게 누르기로 삭제</li>
+                  <li>한 손가락 드래그로 지도 이동</li>
+                  <li>두 손가락 핀치로 줌 인/아웃</li>
+                </>
+              ) : (
+                <>
+                  <li>오른쪽 클릭으로 삭제</li>
+                  <li>스페이스바 + 드래그로 지도 이동</li>
+                  <li>마우스 휠로 줌 인/아웃</li>
+                </>
+              )}
               <li>💾 작업 내용이 자동 저장됩니다</li>
               <li>💣 빨간 버튼으로 저장 데이터 삭제</li>
             </ul>

@@ -81,6 +81,10 @@ const IslandCanvas = ({
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [lastTouchDistance, setLastTouchDistance] = useState(null);
+  const [touchStartPos, setTouchStartPos] = useState(null);
+  const [touchStartTime, setTouchStartTime] = useState(null);
+  const [isDragging, setIsDraggingLocal] = useState(false);
+  const [touchStartStagePos, setTouchStartStagePos] = useState(null);
   
   
   useEffect(() => {
@@ -279,43 +283,75 @@ const IslandCanvas = ({
   };
 
   const handleTouchStart = (e) => {
-    if (e.evt.touches.length === 2) {
+    const touchCount = e.evt.touches.length;
+
+    if (touchCount === 1) {
+      // 한 손가락 터치: 드래그 또는 그리기 준비
+      const touch = e.evt.touches[0];
+      setTouchStartPos({ x: touch.clientX, y: touch.clientY });
+      setTouchStartTime(Date.now());
+      setTouchStartStagePos({ ...stagePos });
+      setIsDraggingLocal(false);
+    } else if (touchCount === 2) {
+      // 두 손가락 터치: 줌 준비
       const distance = getTouchDistance(e.evt.touches);
       setLastTouchDistance(distance);
+      setTouchStartPos(null);
     }
   };
 
   const handleTouchMove = (e) => {
-    if (e.evt.touches.length === 2 && lastTouchDistance) {
+    const touchCount = e.evt.touches.length;
+
+    if (touchCount === 1 && touchStartPos) {
+      // 한 손가락 드래그: 캔버스 이동
+      const touch = e.evt.touches[0];
+      const deltaX = touch.clientX - touchStartPos.x;
+      const deltaY = touch.clientY - touchStartPos.y;
+      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+      // 10px 이상 움직이면 드래그 모드로 전환
+      if (distance > 10 && !isDragging) {
+        setIsDraggingLocal(true);
+      }
+
+      if (isDragging || distance > 10) {
+        e.evt.preventDefault();
+        setStagePos({
+          x: touchStartStagePos.x + deltaX,
+          y: touchStartStagePos.y + deltaY
+        });
+      }
+    } else if (touchCount === 2 && lastTouchDistance) {
+      // 두 손가락 드래그: 줌
       e.evt.preventDefault();
       const currentDistance = getTouchDistance(e.evt.touches);
       const scale = currentDistance / lastTouchDistance;
-      
-      const stage = e.target.getStage();
+
       const touch1 = e.evt.touches[0];
       const touch2 = e.evt.touches[1];
       const centerX = (touch1.clientX + touch2.clientX) / 2;
       const centerY = (touch1.clientY + touch2.clientY) / 2;
-      
+
       const oldScale = zoomLevel;
       const newScale = Math.max(0.1, Math.min(5, oldScale * scale));
-      
+
       // 터치 중심점 기준으로 줌
       const currentImageX = (canvasSize.width - backgroundImage.width * oldScale) / 2 + stagePos.x;
       const currentImageY = (canvasSize.height - backgroundImage.height * oldScale) / 2 + stagePos.y;
-      
+
       const touchRatioX = (centerX - currentImageX) / (backgroundImage.width * oldScale);
       const touchRatioY = (centerY - currentImageY) / (backgroundImage.height * oldScale);
-      
+
       const newTouchX = touchRatioX * backgroundImage.width * newScale;
       const newTouchY = touchRatioY * backgroundImage.height * newScale;
-      
+
       const newImageX = centerX - newTouchX;
       const newImageY = centerY - newTouchY;
-      
+
       const newCenterX = (canvasSize.width - backgroundImage.width * newScale) / 2;
       const newCenterY = (canvasSize.height - backgroundImage.height * newScale) / 2;
-      
+
       setStagePos({
         x: newImageX - newCenterX,
         y: newImageY - newCenterY
@@ -326,6 +362,30 @@ const IslandCanvas = ({
   };
 
   const handleTouchEnd = (e) => {
+    if (touchStartPos && touchStartTime && !isDragging) {
+      // 짧은 탭: 그리기/지우기
+      const touchDuration = Date.now() - touchStartTime;
+
+      if (touchDuration > 500) {
+        // 길게 누르기: 지우개 모드
+        handleCanvasClick({
+          ...e,
+          evt: {
+            ...e.evt,
+            button: 2 // 우클릭으로 처리
+          }
+        });
+      } else {
+        // 짧은 탭: 일반 클릭
+        handleCanvasClick(e);
+      }
+    }
+
+    // 상태 초기화
+    setTouchStartPos(null);
+    setTouchStartTime(null);
+    setIsDraggingLocal(false);
+    setTouchStartStagePos(null);
     if (e.evt.touches.length < 2) {
       setLastTouchDistance(null);
     }
@@ -590,27 +650,9 @@ const IslandCanvas = ({
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onWheel={handleWheel}
-          onTouchStart={(e) => {
-            if (e.evt.touches.length === 1) {
-              handleMouseDown(e);
-            } else {
-              handleTouchStart(e);
-            }
-          }}
-          onTouchMove={(e) => {
-            if (e.evt.touches.length === 1) {
-              handleMouseMove(e);
-            } else {
-              handleTouchMove(e);
-            }
-          }}
-          onTouchEnd={(e) => {
-            if (e.evt.touches.length === 0) {
-              handleMouseUp(e);
-            } else {
-              handleTouchEnd(e);
-            }
-          }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           pixelRatio={window.devicePixelRatio || 1}
         >
         {/* 배경 레이어 */}

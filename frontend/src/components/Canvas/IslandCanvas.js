@@ -307,16 +307,17 @@ const IslandCanvas = ({
       const deltaY = touch.clientY - touchStartPos.y;
       const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-      // 현재 도구가 페인트/지우개가 아니거나 거리가 30px 이상일 때만 드래그 모드로 전환
       const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
-      const dragThreshold = isPaintTool ? 30 : 10; // 페인트 도구일 때는 더 큰 임계값 사용
+
+      // 페인트 도구일 때는 50px 이상 움직일 때만 드래그 모드로 전환
+      const dragThreshold = isPaintTool ? 50 : 10;
 
       if (distance > dragThreshold && !isTouchDragging) {
         setIsTouchDragging(true);
       }
 
-      // 드래그 모드이거나 페인트 도구가 아닐 때만 캔버스 이동
-      if (isTouchDragging || (!isPaintTool && distance > dragThreshold)) {
+      // 드래그 모드일 때만 캔버스 이동
+      if (isTouchDragging) {
         e.evt.preventDefault();
         setStagePos({
           x: touchStartStagePos.x + deltaX,
@@ -363,25 +364,21 @@ const IslandCanvas = ({
   };
 
   const handleTouchEnd = (e) => {
-    if (touchStartPos && touchStartTime) {
+    if (touchStartPos && touchStartTime && !isTouchDragging) {
       const touchDuration = Date.now() - touchStartTime;
-      const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
 
-      // 드래그 모드가 아니거나, 페인트 도구이면서 짧은 터치인 경우 클릭으로 처리
-      if (!isTouchDragging || (isPaintTool && touchDuration < 300)) {
-        if (touchDuration > 500) {
-          // 길게 누르기: 지우개 모드
-          handleStageClick({
-            ...e,
-            evt: {
-              ...e.evt,
-              button: 2 // 우클릭으로 처리
-            }
-          });
-        } else {
-          // 짧은 탭: 일반 클릭
-          handleStageClick(e);
-        }
+      if (touchDuration > 500) {
+        // 길게 누르기: 지우개 모드
+        handleStageClick({
+          ...e,
+          evt: {
+            ...e.evt,
+            button: 2 // 우클릭으로 처리
+          }
+        });
+      } else {
+        // 짧은 탭: 일반 클릭
+        handleStageClick(e);
       }
     }
 

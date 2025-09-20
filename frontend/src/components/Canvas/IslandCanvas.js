@@ -326,22 +326,24 @@ const IslandCanvas = ({
 
       const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
 
-      // 페인트 도구일 때는 100px 이상 움직일 때만 드래그 모드로 전환 (더 관대하게)
-      const dragThreshold = isPaintTool ? 100 : 10;
+      // 페인트 도구일 때는 드래그를 완전히 비활성화
+      if (!isPaintTool) {
+        // 다른 도구일 때만 드래그 감지
+        if (distance > 10 && !isTouchDragging) {
+          console.log('🚶 Setting touch dragging true:', { distance, isPaintTool });
+          setIsTouchDragging(true);
+        }
 
-      if (distance > dragThreshold && !isTouchDragging) {
-        console.log('🚶 Setting touch dragging true:', { distance, dragThreshold, isPaintTool });
-        setIsTouchDragging(true);
+        // 드래그 모드일 때 캔버스 이동
+        if (isTouchDragging) {
+          e.evt.preventDefault();
+          setStagePos({
+            x: touchStartStagePos.x + deltaX,
+            y: touchStartStagePos.y + deltaY
+          });
+        }
       }
-
-      // 드래그 모드일 때만 캔버스 이동
-      if (isTouchDragging) {
-        e.evt.preventDefault();
-        setStagePos({
-          x: touchStartStagePos.x + deltaX,
-          y: touchStartStagePos.y + deltaY
-        });
-      }
+      // 페인트 도구일 때는 아무것도 하지 않음 (드래그 비활성화)
     } else if (touchCount === 2 && lastTouchDistance) {
       // 두 손가락 드래그: 줌
       e.evt.preventDefault();

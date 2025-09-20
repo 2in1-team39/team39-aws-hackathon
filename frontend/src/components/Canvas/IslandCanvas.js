@@ -204,19 +204,7 @@ const IslandCanvas = ({
   };
 
   const handleStageClick = (e) => {
-    console.log('🖱️ handleStageClick called:', {
-      hasBackgroundImage: !!backgroundImage,
-      isDragging,
-      isSpacePressed,
-      currentTool
-    });
-
     if (!backgroundImage || isDragging || isSpacePressed) {
-      console.log('❌ handleStageClick blocked:', {
-        reason: !backgroundImage ? 'no background' :
-                isDragging ? 'is dragging' :
-                isSpacePressed ? 'space pressed' : 'unknown'
-      });
       return;
     }
     
@@ -297,7 +285,7 @@ const IslandCanvas = ({
 
   const handleTouchStart = (e) => {
     const touchCount = e.evt.touches.length;
-    console.log('🎯 TouchStart:', { touchCount, currentTool });
+    // console.log('🎯 TouchStart:', { touchCount, currentTool });
 
     if (touchCount === 1) {
       // 한 손가락 터치: 드래그 또는 그리기 준비
@@ -306,7 +294,7 @@ const IslandCanvas = ({
       setTouchStartTime(Date.now());
       setTouchStartStagePos({ ...stagePos });
       setIsTouchDragging(false);
-      console.log('👆 Single touch started at:', { x: touch.clientX, y: touch.clientY });
+      // console.log('👆 Single touch started at:', { x: touch.clientX, y: touch.clientY });
     } else if (touchCount === 2) {
       // 두 손가락 터치: 줌 및 이동 준비
       const distance = getTouchDistance(e.evt.touches);
@@ -321,7 +309,7 @@ const IslandCanvas = ({
       setTouchStartStagePos({ ...stagePos });
 
       setTouchStartPos(null);
-      console.log('✌️ Two finger touch for zoom/move');
+      // console.log('✌️ Two finger touch for zoom/move');
     }
   };
 
@@ -339,7 +327,7 @@ const IslandCanvas = ({
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
         if (distance > 10 && !isTouchDragging) {
-          console.log('🚶 Setting touch dragging true:', { distance, isPaintTool });
+          // console.log('🚶 Setting touch dragging true:', { distance, isPaintTool });
           setIsTouchDragging(true);
         }
 
@@ -408,20 +396,10 @@ const IslandCanvas = ({
 
   const handleTouchEnd = (e) => {
     const touchDuration = touchStartTime ? Date.now() - touchStartTime : 0;
-    console.log('🔚 TouchEnd:', {
-      hasTouchStartPos: !!touchStartPos,
-      hasTouchStartTime: !!touchStartTime,
-      isTouchDragging,
-      touchDuration,
-      currentTool
-    });
 
     if (touchStartPos && touchStartTime && !isTouchDragging) {
-      console.log('✅ Processing touch as click');
-
       if (touchDuration > 500) {
         // 길게 누르기: 지우개 모드
-        console.log('🔥 Long press - right click');
         handleStageClick({
           ...e,
           evt: {
@@ -431,15 +409,8 @@ const IslandCanvas = ({
         });
       } else {
         // 짧은 탭: 일반 클릭
-        console.log('👆 Short tap - left click');
         handleStageClick(e);
       }
-    } else {
-      console.log('❌ Touch ignored:', {
-        reason: !touchStartPos ? 'no start pos' :
-                !touchStartTime ? 'no start time' :
-                isTouchDragging ? 'was dragging' : 'unknown'
-      });
     }
 
     // 상태 초기화

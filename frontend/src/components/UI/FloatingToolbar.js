@@ -42,8 +42,14 @@ const FloatingToolbar = ({
   };
 
   const getToolbarSpacing = () => {
-    if (isTablet) return { top: '30px', left: '30px', gap: '15px' };
-    return { top: '20px', left: '20px', gap: '10px' };
+    if (isTablet) return {
+      top: '20px',
+      left: '50%',
+      gap: '15px',
+      transform: 'translateX(-50%)', // 중앙 정렬
+      flexDirection: 'row' // 가로 배열
+    };
+    return { top: '20px', left: '20px', gap: '10px', flexDirection: 'column' };
   };
 
   const getFontSize = () => {
@@ -81,11 +87,16 @@ const FloatingToolbar = ({
         position: 'fixed',
         top: toolbarSpacing.top,
         left: toolbarSpacing.left,
+        transform: toolbarSpacing.transform || 'none',
         display: 'flex',
+        flexDirection: toolbarSpacing.flexDirection || 'column',
         gap: toolbarSpacing.gap,
         zIndex: 1000,
-        flexWrap: isTablet ? 'wrap' : 'nowrap',
-        maxWidth: isTablet ? '200px' : 'none'
+        flexWrap: 'nowrap',
+        backgroundColor: isTablet ? 'rgba(255, 255, 255, 0.95)' : 'transparent',
+        borderRadius: isTablet ? '35px' : '0',
+        padding: isTablet ? '10px 20px' : '0',
+        boxShadow: isTablet ? '0 4px 20px rgba(0,0,0,0.15)' : 'none'
       }}>
         {/* 페인트 버튼 */}
         {step === 'edit' && (
@@ -174,13 +185,14 @@ const FloatingToolbar = ({
       {isToolsOpen && step === 'edit' && (
         <div style={{
           position: 'fixed',
-          top: isTablet ? '120px' : '80px',
-          left: isTablet ? '30px' : '20px',
+          top: isTablet ? '100px' : '80px',
+          left: isTablet ? '50%' : '20px',
+          transform: isTablet ? 'translateX(-50%)' : 'none',
           backgroundColor: 'white',
           borderRadius: isTablet ? '15px' : '10px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           zIndex: 999,
-          minWidth: isTablet ? '300px' : '250px',
+          minWidth: isTablet ? '350px' : '250px',
           maxWidth: isTablet ? '90vw' : 'none'
         }}>
           <CompactToolPanel
@@ -204,13 +216,14 @@ const FloatingToolbar = ({
       {isObjectsOpen && step === 'edit' && (
         <div style={{
           position: 'fixed',
-          top: isTablet ? '120px' : '80px',
-          left: isTablet ? '30px' : '80px',
+          top: isTablet ? '100px' : '80px',
+          left: isTablet ? '50%' : '80px',
+          transform: isTablet ? 'translateX(-50%)' : 'none',
           backgroundColor: 'white',
           borderRadius: isTablet ? '15px' : '10px',
           boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
           zIndex: 999,
-          minWidth: isTablet ? '300px' : '250px',
+          minWidth: isTablet ? '350px' : '250px',
           maxWidth: isTablet ? '90vw' : 'none'
         }}>
           <ObjectPanel
@@ -226,8 +239,9 @@ const FloatingToolbar = ({
       {isChecklistOpen && step === 'edit' && (
         <div style={{
           position: 'fixed',
-          top: isTablet ? '120px' : '80px',
-          left: isTablet ? '30px' : '140px',
+          top: isTablet ? '100px' : '80px',
+          left: isTablet ? '50%' : '140px',
+          transform: isTablet ? 'translateX(-50%)' : 'none',
           zIndex: 999
         }}>
           <ChecklistPanel />
@@ -238,8 +252,8 @@ const FloatingToolbar = ({
       {step === 'edit' && backgroundImage && (
         <div style={{
           position: 'fixed',
-          top: '20px',
-          right: '20px',
+          top: isTablet ? '20px' : '20px',
+          right: isTablet ? '20px' : '20px',
           zIndex: 1000
         }}>
           <button

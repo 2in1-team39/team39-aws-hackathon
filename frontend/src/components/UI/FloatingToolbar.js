@@ -101,7 +101,12 @@ const FloatingToolbar = ({
         {/* 페인트 버튼 */}
         {step === 'edit' && (
           <button
-            onClick={() => setIsToolsOpen(!isToolsOpen)}
+            onClick={() => {
+              setIsToolsOpen(!isToolsOpen);
+              if (!isToolsOpen) {
+                onToolChange('paint'); // 페인트 도구로 전환
+              }
+            }}
             style={getButtonStyle(isToolsOpen, 'white', '#4CAF50')}
           >
             🎨
@@ -111,7 +116,11 @@ const FloatingToolbar = ({
         {/* 지우개 버튼 */}
         {step === 'edit' && (
           <button
-            onClick={() => onToolChange('eraser')}
+            onClick={() => {
+              onToolChange('eraser');
+              setIsToolsOpen(false); // 페인트 패널 닫기
+              setIsObjectsOpen(false); // 오브젝트 패널 닫기
+            }}
             style={getButtonStyle(currentTool === 'eraser', 'white', '#f44336')}
             title="지우개"
           >
@@ -122,7 +131,13 @@ const FloatingToolbar = ({
         {/* 오브젝트 버튼 */}
         {step === 'edit' && (
           <button
-            onClick={() => setIsObjectsOpen(!isObjectsOpen)}
+            onClick={() => {
+              setIsObjectsOpen(!isObjectsOpen);
+              if (!isObjectsOpen) {
+                onToolChange('object'); // 오브젝트 도구로 전환
+                setIsToolsOpen(false); // 페인트 패널 닫기
+              }
+            }}
             style={getButtonStyle(isObjectsOpen, 'white', '#FF9800')}
           >
             🏠

@@ -302,18 +302,21 @@ const IslandCanvas = ({
     const touchCount = e.evt.touches.length;
 
     if (touchCount === 1 && touchStartPos) {
-      // 한 손가락 드래그: 캔버스 이동
       const touch = e.evt.touches[0];
       const deltaX = touch.clientX - touchStartPos.x;
       const deltaY = touch.clientY - touchStartPos.y;
       const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-      // 10px 이상 움직이면 드래그 모드로 전환
-      if (distance > 10 && !isTouchDragging) {
+      // 현재 도구가 페인트/지우개가 아니거나 거리가 30px 이상일 때만 드래그 모드로 전환
+      const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
+      const dragThreshold = isPaintTool ? 30 : 10; // 페인트 도구일 때는 더 큰 임계값 사용
+
+      if (distance > dragThreshold && !isTouchDragging) {
         setIsTouchDragging(true);
       }
 
-      if (isTouchDragging || distance > 10) {
+      // 드래그 모드이거나 페인트 도구가 아닐 때만 캔버스 이동
+      if (isTouchDragging || (!isPaintTool && distance > dragThreshold)) {
         e.evt.preventDefault();
         setStagePos({
           x: touchStartStagePos.x + deltaX,
@@ -360,22 +363,25 @@ const IslandCanvas = ({
   };
 
   const handleTouchEnd = (e) => {
-    if (touchStartPos && touchStartTime && !isTouchDragging) {
-      // 짧은 탭: 그리기/지우기
+    if (touchStartPos && touchStartTime) {
       const touchDuration = Date.now() - touchStartTime;
+      const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
 
-      if (touchDuration > 500) {
-        // 길게 누르기: 지우개 모드
-        handleStageClick({
-          ...e,
-          evt: {
-            ...e.evt,
-            button: 2 // 우클릭으로 처리
-          }
-        });
-      } else {
-        // 짧은 탭: 일반 클릭
-        handleStageClick(e);
+      // 드래그 모드가 아니거나, 페인트 도구이면서 짧은 터치인 경우 클릭으로 처리
+      if (!isTouchDragging || (isPaintTool && touchDuration < 300)) {
+        if (touchDuration > 500) {
+          // 길게 누르기: 지우개 모드
+          handleStageClick({
+            ...e,
+            evt: {
+              ...e.evt,
+              button: 2 // 우클릭으로 처리
+            }
+          });
+        } else {
+          // 짧은 탭: 일반 클릭
+          handleStageClick(e);
+        }
       }
     }
 

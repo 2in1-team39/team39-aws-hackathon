@@ -102,12 +102,10 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={() => {
+              onToolChange('paint'); // 페인트 도구로 전환
               setIsToolsOpen(!isToolsOpen);
-              if (!isToolsOpen) {
-                onToolChange('paint'); // 페인트 도구로 전환
-              }
             }}
-            style={getButtonStyle(isToolsOpen, 'white', '#4CAF50')}
+            style={getButtonStyle(currentTool === 'paint' || isToolsOpen, 'white', '#4CAF50')}
           >
             🎨
           </button>

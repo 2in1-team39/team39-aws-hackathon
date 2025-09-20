@@ -326,10 +326,11 @@ const IslandCanvas = ({
 
       const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
 
-      // 페인트 도구일 때는 50px 이상 움직일 때만 드래그 모드로 전환
-      const dragThreshold = isPaintTool ? 50 : 10;
+      // 페인트 도구일 때는 100px 이상 움직일 때만 드래그 모드로 전환 (더 관대하게)
+      const dragThreshold = isPaintTool ? 100 : 10;
 
       if (distance > dragThreshold && !isTouchDragging) {
+        console.log('🚶 Setting touch dragging true:', { distance, dragThreshold, isPaintTool });
         setIsTouchDragging(true);
       }
 

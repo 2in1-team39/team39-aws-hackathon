@@ -283,6 +283,21 @@ function App() {
     
     // 다른 도구들 처리
     switch (currentTool) {
+      case TOOLS.PAINT:
+        console.log('Paint tool triggered:', { gridX, gridY, selectedColor });
+        if (selectedColor) {
+          // HappyIslandDesigner 방식 페인팅 직접 구현
+          const newPaintData = { ...paintData };
+          const key = `${gridX},${gridY}`;
+          newPaintData[key] = {
+            type: 'square',
+            color: selectedColor.color
+          };
+          setPaintData(newPaintData);
+          console.log('Paint data updated:', newPaintData);
+        }
+        break;
+
       case TOOLS.ERASER:
         const objectToRemove = objects.find(obj => {
           const objSize = obj.size || 1;
@@ -293,7 +308,7 @@ function App() {
           removeObject(objectToRemove.id);
         }
         break;
-      
+
       default:
         break;
     }

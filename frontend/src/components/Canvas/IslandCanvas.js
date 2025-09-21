@@ -81,6 +81,7 @@ const IslandCanvas = ({
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [lastTouchDistance, setLastTouchDistance] = useState(null);
+  const [lastTouchCenter, setLastTouchCenter] = useState(null);
   const [touchStartPos, setTouchStartPos] = useState(null);
   const [touchStartTime, setTouchStartTime] = useState(null);
   const [isTouchDragging, setIsTouchDragging] = useState(false);
@@ -299,9 +300,15 @@ const IslandCanvas = ({
       setTouchStartStagePos({ ...stagePos });
       setIsTouchDragging(false);
     } else if (touchCount === 2) {
-      // 두 손가락 터치: 줌 준비
+      // 두 손가락 터치: 줌/팬 준비
       const distance = getTouchDistance(e.evt.touches);
+      const touch1 = e.evt.touches[0];
+      const touch2 = e.evt.touches[1];
+      const centerX = (touch1.clientX + touch2.clientX) / 2;
+      const centerY = (touch1.clientY + touch2.clientY) / 2;
+
       setLastTouchDistance(distance);
+      setLastTouchCenter({ x: centerX, y: centerY });
       setTouchStartPos(null);
     }
   };
@@ -328,42 +335,53 @@ const IslandCanvas = ({
           y: touchStartStagePos.y + deltaY
         });
       }
-    } else if (touchCount === 2 && lastTouchDistance) {
-      // 두 손가락 드래그: 줌
+    } else if (touchCount === 2 && lastTouchDistance && lastTouchCenter) {
+      // 두 손가락 드래그: 줌 + 팬
       e.evt.preventDefault();
       const currentDistance = getTouchDistance(e.evt.touches);
       const scale = currentDistance / lastTouchDistance;
 
       const touch1 = e.evt.touches[0];
       const touch2 = e.evt.touches[1];
-      const centerX = (touch1.clientX + touch2.clientX) / 2;
-      const centerY = (touch1.clientY + touch2.clientY) / 2;
+      const currentCenterX = (touch1.clientX + touch2.clientX) / 2;
+      const currentCenterY = (touch1.clientY + touch2.clientY) / 2;
+
+      // 중심점 이동량 계산 (팬)
+      const panDeltaX = currentCenterX - lastTouchCenter.x;
+      const panDeltaY = currentCenterY - lastTouchCenter.y;
 
       const oldScale = zoomLevel;
       const newScale = Math.max(0.1, Math.min(5, oldScale * scale));
 
-      // 터치 중심점 기준으로 줌
-      const currentImageX = (canvasSize.width - backgroundImage.width * oldScale) / 2 + stagePos.x;
-      const currentImageY = (canvasSize.height - backgroundImage.height * oldScale) / 2 + stagePos.y;
+      // 팬 먼저 적용
+      let newStageX = stagePos.x + panDeltaX;
+      let newStageY = stagePos.y + panDeltaY;
 
-      const touchRatioX = (centerX - currentImageX) / (backgroundImage.width * oldScale);
-      const touchRatioY = (centerY - currentImageY) / (backgroundImage.height * oldScale);
+      // 줌이 변경된 경우 중심점 기준으로 줌 적용
+      if (Math.abs(scale - 1) > 0.01) {
+        const currentImageX = (canvasSize.width - backgroundImage.width * oldScale) / 2 + newStageX;
+        const currentImageY = (canvasSize.height - backgroundImage.height * oldScale) / 2 + newStageY;
 
-      const newTouchX = touchRatioX * backgroundImage.width * newScale;
-      const newTouchY = touchRatioY * backgroundImage.height * newScale;
+        const touchRatioX = (currentCenterX - currentImageX) / (backgroundImage.width * oldScale);
+        const touchRatioY = (currentCenterY - currentImageY) / (backgroundImage.height * oldScale);
 
-      const newImageX = centerX - newTouchX;
-      const newImageY = centerY - newTouchY;
+        const newTouchX = touchRatioX * backgroundImage.width * newScale;
+        const newTouchY = touchRatioY * backgroundImage.height * newScale;
 
-      const newCenterX = (canvasSize.width - backgroundImage.width * newScale) / 2;
-      const newCenterY = (canvasSize.height - backgroundImage.height * newScale) / 2;
+        const newImageX = currentCenterX - newTouchX;
+        const newImageY = currentCenterY - newTouchY;
 
-      setStagePos({
-        x: newImageX - newCenterX,
-        y: newImageY - newCenterY
-      });
+        const newCenterX = (canvasSize.width - backgroundImage.width * newScale) / 2;
+        const newCenterY = (canvasSize.height - backgroundImage.height * newScale) / 2;
+
+        newStageX = newImageX - newCenterX;
+        newStageY = newImageY - newCenterY;
+      }
+
+      setStagePos({ x: newStageX, y: newStageY });
       setZoomLevel(newScale);
       setLastTouchDistance(currentDistance);
+      setLastTouchCenter({ x: currentCenterX, y: currentCenterY });
     }
   };
 
@@ -396,6 +414,7 @@ const IslandCanvas = ({
     setTouchStartStagePos(null);
     if (e.evt.touches.length < 2) {
       setLastTouchDistance(null);
+      setLastTouchCenter(null);
     }
   };
   

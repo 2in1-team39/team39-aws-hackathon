@@ -284,21 +284,26 @@ const IslandCanvas = ({
   const handleTouchStart = (e) => {
     const touchCount = e.evt.touches.length;
 
-    if (touchCount === 1) {
-      // 한 손가락 터치: 페인트 도구라면 즉시 페인팅 처리
-      const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
-      if (isPaintTool) {
-        // 페인트 도구는 즉시 클릭 이벤트로 처리
-        handleStageClick(e);
-        return;
-      }
+    console.log('handleTouchStart called:', { touchCount, currentTool });
 
-      // 페인트 도구가 아닌 경우에만 드래그 준비
+    if (touchCount === 1) {
+      // 한 손가락 터치: 드래그 시작
       const touch = e.evt.touches[0];
       setTouchStartPos({ x: touch.clientX, y: touch.clientY });
       setTouchStartTime(Date.now());
       setTouchStartStagePos({ ...stagePos });
       setIsTouchDragging(false);
+      setIsDragging(true); // 드래그 시작을 마크
+
+      console.log('Touch start - setting isDragging to true');
+
+      const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
+      if (isPaintTool) {
+        // 페인트 도구는 첫 터치에서도 페인팅
+        console.log('Touch start - paint tool, resetting lastPaintPos');
+        setLastPaintPos(null); // 새로운 터치 시작 시 이전 위치 초기화
+        handleStageClick(e);
+      }
     } else if (touchCount === 2) {
       // 두 손가락 터치: 줌/팬 준비
       const distance = getTouchDistance(e.evt.touches);
@@ -317,23 +322,68 @@ const IslandCanvas = ({
     const touchCount = e.evt.touches.length;
     const isPaintTool = currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER;
 
-    if (touchCount === 1 && touchStartPos && !isPaintTool) {
-      // 페인트 도구가 아닐 때만 한 손가락 드래그 처리
-      const touch = e.evt.touches[0];
-      const deltaX = touch.clientX - touchStartPos.x;
-      const deltaY = touch.clientY - touchStartPos.y;
-      const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    console.log('handleTouchMove called:', { touchCount, isPaintTool, currentTool, isDragging });
 
-      if (distance > 10 && !isTouchDragging) {
-        setIsTouchDragging(true);
+    if (touchCount === 1) {
+      if (isPaintTool && isDragging && backgroundImage) {
+        // 페인트 도구일 때는 브라우저 기본 동작 방지 및 계속 페인팅
+        e.evt.preventDefault();
+
+        const stage = e.target.getStage();
+        const pos = stage.getPointerPosition();
+
+        const imageStartX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
+        const imageStartY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y;
+
+        const imageX = pos.x - imageStartX;
+        const imageY = pos.y - imageStartY;
+
+        const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
+        const gridX = Math.floor(imageX / (cellSize * zoomLevel));
+        const gridY = Math.floor(imageY / (cellSize * zoomLevel));
+
+        console.log('Touch move - Paint tool check:', {
+          isPaintTool,
+          isDragging,
+          backgroundImage: !!backgroundImage,
+          gridX,
+          gridY,
+          currentTool,
+          lastPaintPos
+        });
+
+        if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
+          // 같은 위치면 스킵 (중복 페인팅 방지)
+          if (!lastPaintPos || lastPaintPos.x !== gridX || lastPaintPos.y !== gridY) {
+            console.log('Calling paintCells from touch move:', { gridX, gridY, lastPaintPos });
+            paintCells(gridX, gridY, imageX, imageY);
+            setLastPaintPos({ x: gridX, y: gridY });
+          } else {
+            console.log('Skipping same position:', { gridX, gridY, lastPaintPos });
+          }
+        }
+      } else {
+        console.log('Touch move - NOT painting:', { isPaintTool, isDragging, backgroundImage: !!backgroundImage, currentTool });
       }
 
-      if (isTouchDragging) {
-        e.evt.preventDefault();
-        setStagePos({
-          x: touchStartStagePos.x + deltaX,
-          y: touchStartStagePos.y + deltaY
-        });
+      if (!isPaintTool && touchStartPos) {
+        // 페인트 도구가 아닐 때만 한 손가락 드래그 처리
+        const touch = e.evt.touches[0];
+        const deltaX = touch.clientX - touchStartPos.x;
+        const deltaY = touch.clientY - touchStartPos.y;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (distance > 10 && !isTouchDragging) {
+          setIsTouchDragging(true);
+        }
+
+        if (isTouchDragging) {
+          e.evt.preventDefault();
+          setStagePos({
+            x: touchStartStagePos.x + deltaX,
+            y: touchStartStagePos.y + deltaY
+          });
+        }
       }
     } else if (touchCount === 2 && lastTouchDistance && lastTouchCenter) {
       // 두 손가락 드래그: 줌 + 팬
@@ -412,6 +462,8 @@ const IslandCanvas = ({
     setTouchStartTime(null);
     setIsTouchDragging(false);
     setTouchStartStagePos(null);
+    setIsDragging(false);
+    setLastPaintPos(null);
     if (e.evt.touches.length < 2) {
       setLastTouchDistance(null);
       setLastTouchCenter(null);
@@ -421,11 +473,14 @@ const IslandCanvas = ({
   const paintCells = (gridX, gridY, imageX, imageY) => {
     if (!backgroundImage) return;
 
+    console.log('paintCells called:', { gridX, gridY, lastPaintPos, currentTool, selectedColor });
+
     let newPaintData = { ...paintData };
     let cellsToPaint = [];
 
     // 이전 위치가 있으면 항상 보간하여 연속성 보장
     if (lastPaintPos) {
+      console.log('Using last paint position for interpolation:', lastPaintPos);
       // Bresenham's line algorithm으로 이전 위치와 현재 위치 사이 보간
       const dx = Math.abs(gridX - lastPaintPos.x);
       const dy = Math.abs(gridY - lastPaintPos.y);
@@ -444,9 +499,12 @@ const IslandCanvas = ({
         if (e2 < dx) { err += dx; y += sy; }
       }
     } else {
+      console.log('First paint point, no interpolation');
       // 첫 번째 점
       cellsToPaint.push({ x: gridX, y: gridY });
     }
+
+    console.log('Cells to paint:', cellsToPaint);
 
     // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
     // 모든 셀 페인팅 (연속성을 위해)
@@ -506,21 +564,24 @@ const IslandCanvas = ({
     
     if (currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER) {
       setIsDragging(true);
-      
+      setLastPaintPos(null); // 새로운 페인팅 시작 시 이전 위치 초기화
+      console.log('Mouse down - Paint tool, resetting lastPaintPos');
+
       if (backgroundImage) {
         // 이미지 시작 위치 계산
         const imageStartX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
         const imageStartY = (canvasSize.height - backgroundImage.height * zoomLevel) / 2 + stagePos.y;
-        
+
         // 이미지 내에서의 좌표
         const imageX = pos.x - imageStartX;
         const imageY = pos.y - imageStartY;
-        
+
         const cellSize = Math.min(backgroundImage.width / GRID_CONFIG.COLS, backgroundImage.height / GRID_CONFIG.ROWS);
         const gridX = Math.floor(imageX / (cellSize * zoomLevel));
         const gridY = Math.floor(imageY / (cellSize * zoomLevel));
-        
+
         if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
+          console.log('Mouse down - Calling paintCells:', { gridX, gridY });
           paintCells(gridX, gridY, imageX, imageY);
           if (!isShiftPressed) {
             setLastPaintPos({ x: gridX, y: gridY });
@@ -533,7 +594,9 @@ const IslandCanvas = ({
   const handleMouseMove = (e) => {
     const stage = e.target.getStage();
     const pos = stage.getPointerPosition();
-    
+
+    console.log('handleMouseMove called:', { isDragging, currentTool, isSpacePressed });
+
     if (isDragging && isSpacePressed && lastPointerPos) {
       const dx = pos.x - lastPointerPos.x;
       const dy = pos.y - lastPointerPos.y;
@@ -542,7 +605,7 @@ const IslandCanvas = ({
         y: prev.y + dy
       }));
     }
-    
+
     if (isDragging && isSpacePressed) {
       setLastPointerPos(pos);
     }
@@ -602,8 +665,9 @@ const IslandCanvas = ({
       return;
     }
     
-    // 실시간 페인팅
+    // 실시간 페인팅 (마우스와 터치 모두 지원)
     if (isDragging && (currentTool === TOOLS.PAINT || currentTool === TOOLS.ERASER) && !isSpacePressed && currentTool !== TOOLS.OBJECT) {
+      console.log('Mouse move - Paint tool painting');
       if (backgroundImage) {
         // 이미지 시작 위치 계산
         const imageStartX = (canvasSize.width - backgroundImage.width * zoomLevel) / 2 + stagePos.x;
@@ -618,9 +682,13 @@ const IslandCanvas = ({
         const gridY = Math.floor(imageY / (cellSize * zoomLevel));
 
         if (gridX >= 0 && gridX < GRID_CONFIG.COLS && gridY >= 0 && gridY < GRID_CONFIG.ROWS) {
-          // 자유 그리기: 이전 위치와 현재 위치 사이 보간하여 연속성 보장
-          paintCells(gridX, gridY, imageX, imageY);
-          setLastPaintPos({ x: gridX, y: gridY });
+          // 같은 위치면 스킵 (중복 페인팅 방지)
+          if (!lastPaintPos || lastPaintPos.x !== gridX || lastPaintPos.y !== gridY) {
+            console.log('Mouse move - Calling paintCells:', { gridX, gridY, lastPaintPos });
+            // 자유 그리기: 이전 위치와 현재 위치 사이 보간하여 연속성 보장
+            paintCells(gridX, gridY, imageX, imageY);
+            setLastPaintPos({ x: gridX, y: gridY });
+          }
         }
       }
     }
@@ -680,6 +748,7 @@ const IslandCanvas = ({
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
+          draggable={false}
           pixelRatio={window.devicePixelRatio || 1}
         >
         {/* 배경 레이어 */}

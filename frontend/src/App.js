@@ -286,19 +286,23 @@ function App() {
       case TOOLS.PAINT:
         console.log('Paint tool triggered:', { gridX, gridY, selectedColor });
         if (selectedColor) {
-          // HappyIslandDesigner 방식 페인팅 직접 구현
-          const newPaintData = { ...paintData };
-          const key = `${gridX},${gridY}`;
-          newPaintData[key] = {
-            type: 'square',
-            color: selectedColor.color
-          };
+          // HappyIslandDesigner 방식 페인팅 사용 - paintCells와 동일하게
+          const { happyBrush, paintWithHappyBrush } = require('./utils/happyIslandBrush');
+          let newPaintData = { ...paintData };
+
+          // 마우스 위치에 따른 삼각형 방향 업데이트
+          happyBrush.updateDirection({ x: gridX + 0.5, y: gridY + 0.5 });
+          newPaintData = paintWithHappyBrush(newPaintData, gridX, gridY, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
+
           setPaintData(newPaintData);
           console.log('Paint data updated:', newPaintData);
         }
         break;
 
       case TOOLS.ERASER:
+        console.log('Eraser tool triggered:', { gridX, gridY });
+
+        // 오브젝트 지우기
         const objectToRemove = objects.find(obj => {
           const objSize = obj.size || 1;
           return gridX >= obj.gridX && gridX < obj.gridX + objSize &&
@@ -306,7 +310,14 @@ function App() {
         });
         if (objectToRemove) {
           removeObject(objectToRemove.id);
+          console.log('Object removed:', objectToRemove.id);
         }
+
+        // 페인트 데이터 지우기 - paintCells와 동일한 방식 사용
+        const { erasePaintCell } = require('./utils/trianglePainting');
+        const newPaintData = erasePaintCell(paintData, gridX, gridY);
+        setPaintData(newPaintData);
+        console.log('Paint data removed at:', `${gridX},${gridY}`);
         break;
 
       default:

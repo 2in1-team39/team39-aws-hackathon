@@ -1,13 +1,13 @@
 {
   "files": {
     "main.css": "/team39-aws-hackathon/static/css/main.41414cfe.css",
-    "main.js": "/team39-aws-hackathon/static/js/main.c620f1d1.js",
+    "main.js": "/team39-aws-hackathon/static/js/main.e96f3081.js",
     "index.html": "/team39-aws-hackathon/index.html",
     "main.41414cfe.css.map": "/team39-aws-hackathon/static/css/main.41414cfe.css.map",
-    "main.c620f1d1.js.map": "/team39-aws-hackathon/static/js/main.c620f1d1.js.map"
+    "main.e96f3081.js.map": "/team39-aws-hackathon/static/js/main.e96f3081.js.map"
   },
   "entrypoints": [
     "static/css/main.41414cfe.css",
-    "static/js/main.c620f1d1.js"
+    "static/js/main.e96f3081.js"
   ]
 }

@@ -7,6 +7,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
   const [gridWidth, setGridWidth] = useState(280);
   const [gridHeight, setGridHeight] = useState(240);
   const stageRef = useRef();
+  const lastDistanceRef = useRef(0);
+  const lastCenterRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -148,29 +150,108 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
     });
   };
 
+  const getDistance = (p1, p2) => {
+    return Math.sqrt(Math.pow(p2.x - p1.x, 2) + Math.pow(p2.y - p1.y, 2));
+  };
+
+  const getCenter = (p1, p2) => {
+    return {
+      x: (p1.x + p2.x) / 2,
+      y: (p1.y + p2.y) / 2,
+    };
+  };
+
+  const handleTouchStart = (e) => {
+    const touchPoints = e.evt.touches;
+
+    if (touchPoints.length === 2) {
+      e.evt.preventDefault();
+      const touch1 = { x: touchPoints[0].clientX, y: touchPoints[0].clientY };
+      const touch2 = { x: touchPoints[1].clientX, y: touchPoints[1].clientY };
+
+      lastDistanceRef.current = getDistance(touch1, touch2);
+      lastCenterRef.current = getCenter(touch1, touch2);
+    }
+  };
+
+  const handleTouchMove = (e) => {
+    const stage = e.target.getStage();
+    const touchPoints = e.evt.touches;
+
+    if (touchPoints.length === 2) {
+      e.evt.preventDefault();
+
+      const touch1 = { x: touchPoints[0].clientX, y: touchPoints[0].clientY };
+      const touch2 = { x: touchPoints[1].clientX, y: touchPoints[1].clientY };
+
+      const newDistance = getDistance(touch1, touch2);
+      const newCenter = getCenter(touch1, touch2);
+
+      // 핀치 줌 계산
+      if (lastDistanceRef.current > 0) {
+        const scaleDelta = newDistance / lastDistanceRef.current;
+        const newScale = imageTransform.scaleX * scaleDelta;
+        const clampedScale = Math.max(0.1, Math.min(5, newScale));
+
+        // 중심점 기준 확대/축소 및 이동
+        const scaleRatio = clampedScale / imageTransform.scaleX;
+
+        // 터치 중심점 기준으로 스케일 적용
+        const stageBox = stage.container().getBoundingClientRect();
+        const oldCenter = {
+          x: newCenter.x - stageBox.left,
+          y: newCenter.y - stageBox.top
+        };
+
+        const newX = oldCenter.x - (oldCenter.x - imageTransform.x) * scaleRatio;
+        const newY = oldCenter.y - (oldCenter.y - imageTransform.y) * scaleRatio;
+
+        // 이동 처리
+        const centerDelta = {
+          x: newCenter.x - lastCenterRef.current.x,
+          y: newCenter.y - lastCenterRef.current.y
+        };
+
+        setImageTransform({
+          x: newX + centerDelta.x,
+          y: newY + centerDelta.y,
+          scaleX: clampedScale,
+          scaleY: clampedScale
+        });
+      }
+
+      lastDistanceRef.current = newDistance;
+      lastCenterRef.current = newCenter;
+    }
+  };
+
+  const handleTouchEnd = (e) => {
+    lastDistanceRef.current = 0;
+  };
+
   const handleConfirm = () => {
     const canvas = document.createElement('canvas');
     canvas.width = gridWidth;
     canvas.height = gridHeight;
     const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
-    
+
     // 격자 영역 계산
     const gridX = (canvasSize.width - 250 - gridWidth) / 2;
     const gridY = (canvasSize.height - gridHeight) / 2;
-    
+
     // 이미지에서 격자 영역에 해당하는 부분 추출
     const sourceX = (gridX - imageTransform.x) / imageTransform.scaleX;
     const sourceY = (gridY - imageTransform.y) / imageTransform.scaleY;
     const sourceWidth = gridWidth / imageTransform.scaleX;
     const sourceHeight = gridHeight / imageTransform.scaleY;
-    
+
     ctx.drawImage(
       image,
       sourceX, sourceY, sourceWidth, sourceHeight,
       0, 0, gridWidth, gridHeight
     );
-    
+
     const croppedImage = new Image();
     croppedImage.onload = () => onCropComplete(croppedImage);
     croppedImage.src = canvas.toDataURL();
@@ -210,7 +291,8 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
           <h4 style={{ margin: '0 0 8px 0', fontSize: '14px' }}>조작 방법</h4>
           <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.4' }}>
             • 화살표 키: 미세 조정<br/>
-            • 마우스 휠: 확대/축소
+            • 마우스 휠: 확대/축소<br/>
+            • 두 손가락 터치: 확대/축소 (태블릿)
           </div>
         </div>
         
@@ -282,9 +364,12 @@ const ImageCropper = ({ image, onCropComplete, onCancel }) => {
           height={canvasSize.height}
           ref={stageRef}
           onWheel={handleWheel}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <Layer>
-            <KonvaImage 
+            <KonvaImage
               image={image}
               x={imageTransform.x}
               y={imageTransform.y}

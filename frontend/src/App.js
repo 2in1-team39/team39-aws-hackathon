@@ -27,6 +27,8 @@ function App() {
     setSelectedColor,
     brushSize,
     setBrushSize,
+    eraserSize,
+    setEraserSize,
     currentBrushType,
     setCurrentBrushType,
     isLineMode,
@@ -313,11 +315,11 @@ function App() {
           console.log('Object removed:', objectToRemove.id);
         }
 
-        // 페인트 데이터 지우기 - paintCells와 동일한 방식 사용
-        const { erasePaintCell } = require('./utils/trianglePainting');
-        const newPaintData = erasePaintCell(paintData, gridX, gridY);
+        // 페인트 데이터 지우기 - 지우개 크기에 따른 영역 지우기
+        const { erasePaintArea } = require('./utils/trianglePainting');
+        const newPaintData = erasePaintArea(paintData, gridX, gridY, eraserSize, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
         setPaintData(newPaintData);
-        console.log('Paint data removed at:', `${gridX},${gridY}`);
+        console.log('Paint data erased in area around:', `${gridX},${gridY}`, 'with size:', eraserSize);
         break;
 
       default:
@@ -408,6 +410,17 @@ function App() {
     return 'crosshair';
   }, [backgroundImage, selectedColor, zoomLevel]);
 
+  // 지우개 커서 생성 함수
+  const generateEraserCursor = useCallback(() => {
+    if (!backgroundImage) return 'crosshair';
+
+    const cellSize = Math.min(backgroundImage.width / 112, backgroundImage.height / 96) * zoomLevel;
+    const size = Math.max(8, cellSize * eraserSize);
+
+    // 지우개는 빨간색 사각형 커서로 표시
+    return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect x='1' y='1' width='${size-2}' height='${size-2}' fill='none' stroke='%23ff4444' stroke-width='2' stroke-dasharray='4,2'/%3E%3Crect x='${size/2-1}' y='${size/2-1}' width='2' height='2' fill='%23ff4444'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+  }, [backgroundImage, eraserSize, zoomLevel]);
+
   // 도구 변경 시 커서 업데이트
   React.useEffect(() => {
     if (stageRef.current) {
@@ -425,7 +438,7 @@ function App() {
             stage.container().style.cursor = generateBrushCursor();
             break;
           case TOOLS.ERASER:
-            stage.container().style.cursor = 'crosshair';
+            stage.container().style.cursor = generateEraserCursor();
             break;
           case TOOLS.OBJECT:
             stage.container().style.cursor = 'pointer';
@@ -435,7 +448,7 @@ function App() {
         }
       }
     }
-  }, [currentTool, brushSize, selectedColor, currentBrushType, isSpacePressed, isRightPressed, isEyedropperActive, zoomLevel, backgroundImage, brushUpdateTrigger, generateBrushCursor, stageRef]);
+  }, [currentTool, brushSize, eraserSize, selectedColor, currentBrushType, isSpacePressed, isRightPressed, isEyedropperActive, zoomLevel, backgroundImage, brushUpdateTrigger, generateBrushCursor, generateEraserCursor, stageRef]);
 
   // 저장된 데이터 삭제
   const clearSavedData = () => {
@@ -495,6 +508,8 @@ function App() {
         onColorSelect={setSelectedColor}
         brushSize={brushSize}
         setBrushSize={handleBrushSizeChange}
+        eraserSize={eraserSize}
+        setEraserSize={setEraserSize}
         currentBrushType={currentBrushType}
         setCurrentBrushType={handleBrushTypeChange}
         isLineMode={isLineMode}
@@ -543,6 +558,7 @@ function App() {
           setPaintData={setPaintData}
           selectedColor={selectedColor}
           brushSize={brushSize}
+          eraserSize={eraserSize}
           currentBrushType={currentBrushType}
           isLineMode={isLineMode}
           isEyedropperActive={isEyedropperActive}

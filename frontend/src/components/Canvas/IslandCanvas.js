@@ -4,7 +4,7 @@ import { GRID_CONFIG, COLORS } from '../../constants/gridConfig';
 import { TOOLS, BRUSH_TYPES } from '../../constants/objectTypes';
 import {
   createTrianglePath,
-  erasePaintCell
+  erasePaintArea
 } from '../../utils/trianglePainting';
 import { happyBrush, paintWithHappyBrush } from '../../utils/happyIslandBrush';
 
@@ -56,6 +56,7 @@ const IslandCanvas = ({
   setPaintData,
   selectedColor,
   brushSize,
+  eraserSize,
   isDragging,
   setIsDragging,
   stagePos,
@@ -515,7 +516,7 @@ const IslandCanvas = ({
           happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
           newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
         } else if (currentTool === TOOLS.ERASER) {
-          newPaintData = erasePaintCell(newPaintData, x, y);
+          newPaintData = erasePaintArea(newPaintData, x, y, eraserSize, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
 
           // 오브젝트도 삭제
           const objectToRemove = objects.find(obj => {

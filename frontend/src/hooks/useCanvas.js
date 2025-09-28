@@ -8,6 +8,7 @@ export const useCanvas = () => {
   const [paintData, setPaintData] = useState({});
   const [selectedColor, setSelectedColor] = useState(PAINT_COLORS.WATER);
   const [brushSize, setBrushSize] = useState(1);
+  const [eraserSize, setEraserSize] = useState(1);
   const [currentBrushType, setCurrentBrushType] = useState(BRUSH_TYPES.SQUARE);
   const [isLineMode, setIsLineMode] = useState(false);
   const [isEyedropperActive, setIsEyedropperActive] = useState(false);
@@ -66,6 +67,8 @@ export const useCanvas = () => {
     setSelectedColor,
     brushSize,
     setBrushSize,
+    eraserSize,
+    setEraserSize,
     currentBrushType,
     setCurrentBrushType,
     isLineMode,

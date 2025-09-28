@@ -11,6 +11,8 @@ const FloatingToolbar = ({
   onColorSelect,
   brushSize,
   setBrushSize,
+  eraserSize,
+  setEraserSize,
   currentBrushType,
   setCurrentBrushType,
   isEyedropperActive,
@@ -28,6 +30,7 @@ const FloatingToolbar = ({
 }) => {
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [isObjectsOpen, setIsObjectsOpen] = useState(false);
+  const [isEraserOpen, setIsEraserOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const [isChecklistOpen, setIsChecklistOpen] = useState(false);
 
@@ -115,11 +118,18 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={() => {
-              onToolChange('eraser');
+              if (currentTool === 'eraser') {
+                // 이미 지우개 도구가 선택된 경우 패널만 토글
+                setIsEraserOpen(!isEraserOpen);
+              } else {
+                // 다른 도구에서 지우개로 변경하는 경우
+                onToolChange('eraser');
+                setIsEraserOpen(true);
+              }
               setIsToolsOpen(false); // 페인트 패널 닫기
               setIsObjectsOpen(false); // 오브젝트 패널 닫기
             }}
-            style={getButtonStyle(currentTool === 'eraser', 'white', '#f44336')}
+            style={getButtonStyle(currentTool === 'eraser' || isEraserOpen, 'white', '#f44336')}
             title="지우개"
           >
             🧽
@@ -225,6 +235,67 @@ const FloatingToolbar = ({
         </div>
       )}
       
+      {/* 지우개 패널 */}
+      {isEraserOpen && step === 'edit' && (
+        <div style={{
+          position: 'fixed',
+          top: isTablet ? '100px' : '140px',
+          left: isTablet ? '50%' : '20px',
+          transform: isTablet ? 'translateX(-50%)' : 'none',
+          backgroundColor: 'white',
+          borderRadius: isTablet ? '15px' : '10px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+          zIndex: 999,
+          padding: '20px',
+          minWidth: isTablet ? '300px' : '200px'
+        }}>
+          <h4 style={{ margin: '0 0 15px 0', fontSize: '16px', color: '#333' }}>지우개 크기</h4>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontSize: '12px', color: '#666', minWidth: '30px' }}>크기:</span>
+              <input
+                type="range"
+                min="1"
+                max="5"
+                value={eraserSize}
+                onChange={(e) => setEraserSize(Number(e.target.value))}
+                style={{
+                  flex: 1,
+                  height: '4px',
+                  borderRadius: '2px',
+                  background: '#ddd',
+                  outline: 'none'
+                }}
+              />
+              <span style={{ fontSize: '14px', fontWeight: 'bold', minWidth: '20px' }}>{eraserSize}</span>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+              {[1, 2, 3, 4, 5].map(size => (
+                <button
+                  key={size}
+                  onClick={() => setEraserSize(size)}
+                  style={{
+                    width: '30px',
+                    height: '30px',
+                    border: `2px solid ${eraserSize === size ? '#f44336' : '#ddd'}`,
+                    borderRadius: '4px',
+                    backgroundColor: eraserSize === size ? '#f44336' : 'white',
+                    color: eraserSize === size ? 'white' : '#333',
+                    fontSize: '12px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {size}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 오브젝트 패널 */}
       {isObjectsOpen && step === 'edit' && (
         <div style={{
@@ -331,7 +402,7 @@ const FloatingToolbar = ({
       )}
 
       {/* 배경 클릭 시 패널 닫기 */}
-      {(isHelpOpen || isChecklistOpen) && (
+      {(isHelpOpen || isChecklistOpen || isEraserOpen) && (
         <div
           style={{
             position: 'fixed',
@@ -344,6 +415,7 @@ const FloatingToolbar = ({
           onClick={() => {
             setIsHelpOpen(false);
             setIsChecklistOpen(false);
+            setIsEraserOpen(false);
           }}
         />
       )}

@@ -132,9 +132,33 @@ export const paintSquareCell = (paintData, gridX, gridY, color) => {
 export const erasePaintCell = (paintData, gridX, gridY) => {
   const key = `${gridX},${gridY}`;
   const newPaintData = { ...paintData };
-  
+
   delete newPaintData[key];
-  
+
+  return newPaintData;
+};
+
+// 지우개 크기에 따른 영역 지우기 (사각형 패턴)
+export const erasePaintArea = (paintData, centerX, centerY, eraserSize, gridCols, gridRows) => {
+  let newPaintData = { ...paintData };
+
+  // 지우개 크기에 따른 사각형 영역 계산
+  const halfSize = Math.floor(eraserSize / 2);
+  const startX = centerX - halfSize;
+  const startY = centerY - halfSize;
+  const endX = startX + eraserSize - 1;
+  const endY = startY + eraserSize - 1;
+
+  for (let x = startX; x <= endX; x++) {
+    for (let y = startY; y <= endY; y++) {
+      // 격자 범위 내에 있는지 확인
+      if (x >= 0 && x < gridCols && y >= 0 && y < gridRows) {
+        const key = `${x},${y}`;
+        delete newPaintData[key];
+      }
+    }
+  }
+
   return newPaintData;
 };
 

@@ -14,24 +14,7 @@
 ## 기술 스택
 
 - **Frontend**: React + JavaScript + Konva.js
-- **Backend**: Python FastAPI
-- **배포**: AWS (S3 + CloudFront + Lambda)
 
-## 설치 및 실행
-
-### Frontend
-```bash
-cd frontend
-npm install
-npm start
-```
-
-### Backend
-```bash
-cd backend
-pip install -r requirements.txt
-python main.py
-```
 
 ## 현재 구현된 기능
 
@@ -57,17 +40,9 @@ python main.py
 - ✅ **프로젝트 관리**
   - 프로젝트 저장 (JSON)
   - 캔버스 초기화
-- ✅ **FastAPI 백엔드 서버**
 
-## 프로젝트 구조
 
-```
-q_hackathon/
-├── frontend/           # React 프론트엔드
-├── backend/           # FastAPI 백엔드
-├── docs/              # 프로젝트 문서
-└── deployment/        # AWS 배포 설정
-```
+
 
 ## 개발 진행 상황
 
@@ -80,30 +55,19 @@ q_hackathon/
   - 3단계 워크플로우 (업로드 → 조정 → 편집)
   - 이미지 크롭 및 조정 도구
   - 픽셀 퍼펙트 배경 렌더링
-  
-- ✅ **Phase 3: 오브젝트 시스템**
-  - 격자 기반 오브젝트 배치
-  - 도구 선택 시스템
-  - 오브젝트 삭제 기능
-  
-- 🚧 **Phase 4: 페인트 시스템**
+   
+- 🚧 **Phase 3: 페인트 시스템**
   - 격자 단위 페인팅 기능
   - 브러시 도구
   - 색상 팔레트
-  
+
+- 🚧 **Phase 4: 오브젝트 시스템**
+  - 격자 기반 오브젝트 배치
+  - 도구 선택 시스템
+  - 오브젝트 삭제 기능
+
 - 🚧 **Phase 5: UI/UX 개선**
   - 반응형 디자인
   - 키보드 단축키
   - 사용자 가이드
   
-- ✅ **Phase 6: 백엔드 및 저장 기능**
-  - FastAPI 서버
-  - JSON 프로젝트 저장
-  
-- ⏳ **Phase 7: AWS 배포**
-  - S3 + CloudFront 설정
-  - Lambda 함수 배포
-  
-- ⏳ **Phase 8: 테스트 및 최적화**
-  - 성능 최적화
-  - 브라우저 호환성 테스트

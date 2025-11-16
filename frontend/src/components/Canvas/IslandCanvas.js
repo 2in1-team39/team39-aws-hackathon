@@ -580,9 +580,19 @@ const IslandCanvas = ({
     for (const { x, y } of uniqueCells.values()) {
       if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
         if (currentTool === TOOLS.PAINT && selectedColor) {
-          // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
-          happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
-          newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
+          // SweepPath인 경우: 영향받는 셀들을 직접 사각형으로 칠하기 (happy brush 브러시 크기 적용 안 함)
+          if (useSweepPath) {
+            const key = `${x},${y}`;
+            newPaintData[key] = {
+              type: 'square',
+              color: selectedColor.color
+            };
+          } else {
+            // 일반 페인팅: happy brush 크기 적용
+            // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
+            happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
+            newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
+          }
         } else if (currentTool === TOOLS.ERASER) {
           newPaintData = erasePaintArea(newPaintData, x, y, eraserSize, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
 

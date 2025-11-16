@@ -464,7 +464,7 @@ function App() {
         // 팔각형 모양으로 표시
         const s = size;
         const cornerSize = Math.floor(s / 3);
-        const pathData = `M ${cornerSize},0 L ${s - cornerSize},0 L ${s},${cornerSize} L ${s},${s - cornerSize} L ${s - cornerSize},${s} L ${cornerSize},${s} L 0,${s - cornerSize} L 0,${cornerSize} Z`;
+        const pathData = `M${cornerSize},0 L${s - cornerSize},0 L${s},${cornerSize} L${s},${s - cornerSize} L${s - cornerSize},${s} L${cornerSize},${s} L0,${s - cornerSize} L0,${cornerSize} Z`;
         return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Cpath d='${pathData}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
       } else {
         // 사각형

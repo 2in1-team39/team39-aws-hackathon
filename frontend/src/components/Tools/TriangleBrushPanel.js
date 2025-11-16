@@ -20,19 +20,26 @@ const TriangleBrushPanel = ({
   };
 
   const handleBrushTypeChange = (type) => {
-    happyBrush.brushType = type;
-    happyBrush.isTriangleBrush = false;
-
     // ROUNDED 타입일 때 크기 2로 설정
-    if (type === BRUSH_TYPES.ROUNDED && happyBrush.rawBrushSize < 2) {
-      happyBrush.rawBrushSize = 2;
-      happyBrush.brushSize = 2;
+    if (type === BRUSH_TYPES.ROUNDED) {
+      happyBrush.brushType = type;
+      happyBrush.isTriangleBrush = false;
+      if (happyBrush.rawBrushSize < 2) {
+        happyBrush.rawBrushSize = 2;
+        happyBrush.brushSize = 2;
+      }
     }
     // SQUARE 타입일 때 크기 1로 설정
-    if (type === BRUSH_TYPES.SQUARE) {
+    else if (type === BRUSH_TYPES.SQUARE) {
+      happyBrush.brushType = type;
+      happyBrush.isTriangleBrush = false;
       happyBrush.rawBrushSize = 1;
       happyBrush.brushSize = 1;
+    } else {
+      happyBrush.brushType = type;
+      happyBrush.isTriangleBrush = false;
     }
+
     onBrushTypeChange(type);
   };
 

@@ -493,48 +493,82 @@ const IslandCanvas = ({
                          lastPaintPos);
 
     if (useSweepPath) {
-      // SweepPath: 라인 위의 모든 점에서 브러시 영역을 사각형으로 칠하여 gap-free 스트로크 생성
+      // SweepPath: 라인 시작/끝점은 happy brush로 칠하고(브러시 모양 보존),
+      // 중간 점들의 셀은 사각형으로 칠해 gap-free 스트로크 생성
       console.log('Using sweepPath for diamond/octagon brush');
 
-      const affectedCellsSet = new Set();
       const size = happyBrush.rawBrushSize;
+      const linePoints = []; // 모든 라인 점 저장
 
+      // Step 1: 라인 위의 모든 점 수집
       doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (lineX, lineY) => {
-        // 각 선 위의 점에서 브러시가 영향을 주는 모든 셀 계산 및 수집
+        linePoints.push({ x: lineX, y: lineY });
+      });
+
+      // Step 2: 각 라인 점에서 영향받는 셀 계산 및 분류
+      const startPointCells = []; // 시작점 셀 (happy brush로 칠함)
+      const middleCells = []; // 중간 셀 (사각형으로 칠함)
+      const endPointCells = []; // 끝점 셀 (happy brush로 칠함)
+
+      linePoints.forEach((point, index) => {
+        const isStartPoint = index === 0;
+        const isEndPoint = index === linePoints.length - 1;
+        const affectedCells = [];
+
+        // 현재 라인 점에서 영향받는 셀 계산
         if (size === 2 && currentBrushType === BRUSH_TYPES.ROUNDED) {
           // 다이아몬드 (2x2): 중심에서 ±1 범위의 2x2 영역
-          const startX = lineX - 1;
-          const startY = lineY - 1;
+          const startX = point.x - 1;
+          const startY = point.y - 1;
           for (let dx = 0; dx < 2; dx++) {
             for (let dy = 0; dy < 2; dy++) {
               const x = startX + dx;
               const y = startY + dy;
               if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                affectedCellsSet.add(`${x},${y}`);
+                affectedCells.push({ x, y });
               }
             }
           }
         } else if (size >= 3 && currentBrushType === BRUSH_TYPES.ROUNDED) {
           // 팔각형 (3x3+): 중심에서 ±size/2 범위의 size×size 영역
           const halfSize = Math.floor(size / 2);
-          const startX = lineX - halfSize;
-          const startY = lineY - halfSize;
+          const startX = point.x - halfSize;
+          const startY = point.y - halfSize;
           for (let dx = 0; dx < size; dx++) {
             for (let dy = 0; dy < size; dy++) {
               const x = startX + dx;
               const y = startY + dy;
               if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                affectedCellsSet.add(`${x},${y}`);
+                affectedCells.push({ x, y });
               }
             }
           }
         }
+
+        // 셀을 분류: 시작점, 중간, 끝점
+        if (isStartPoint) {
+          startPointCells.push(...affectedCells);
+        } else if (isEndPoint) {
+          endPointCells.push(...affectedCells);
+        } else {
+          middleCells.push(...affectedCells);
+        }
       });
 
-      // 모든 영향받는 셀을 사각형으로 수집 (끝점 포함)
-      affectedCellsSet.forEach(key => {
-        const [x, y] = key.split(',').map(Number);
-        cellsToPaint.push({ x, y, isSweepPath: true });
+      // Step 3: cellsToPaint에 분류된 셀 추가
+      // 시작점: happy brush로 칠함
+      startPointCells.forEach(({ x, y }) => {
+        cellsToPaint.push({ x, y, isSweepPath: false }); // happy brush 사용
+      });
+
+      // 중간 셀: 사각형으로 칠함
+      middleCells.forEach(({ x, y }) => {
+        cellsToPaint.push({ x, y, isSweepPath: true }); // 직접 사각형으로 칠함
+      });
+
+      // 끝점: happy brush로 칠함
+      endPointCells.forEach(({ x, y }) => {
+        cellsToPaint.push({ x, y, isSweepPath: false }); // happy brush 사용
       });
     } else {
       // 기본 Bresenham 직선 보간
@@ -564,12 +598,19 @@ const IslandCanvas = ({
 
     console.log('Cells to paint:', cellsToPaint);
 
-    // 중복 제거
+    // 중복 제거: 같은 셀이 여러 번 나타나면 happy brush (isSweepPath: false)를 우선
     const uniqueCells = new Map();
     cellsToPaint.forEach(({ x, y, isSweepPath }) => {
       const key = `${x},${y}`;
       if (!uniqueCells.has(key)) {
         uniqueCells.set(key, { x, y, isSweepPath });
+      } else {
+        // 이미 있는 셀: happy brush (false)가 사각형 (true)보다 우선
+        const existing = uniqueCells.get(key);
+        if (!isSweepPath && existing.isSweepPath) {
+          // 현재가 happy brush이고 기존이 사각형이면 happy brush로 업데이트
+          uniqueCells.set(key, { x, y, isSweepPath: false });
+        }
       }
     });
 

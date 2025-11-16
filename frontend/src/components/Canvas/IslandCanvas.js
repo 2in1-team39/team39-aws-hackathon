@@ -496,8 +496,47 @@ const IslandCanvas = ({
       // SweepPath: 라인 위의 모든 점에서 브러시를 스탬프하여 gap-free 스트로크 생성
       console.log('Using sweepPath for diamond/octagon brush');
 
-      // Bresenham 라인의 모든 셀을 순회하며 브러시 스탬프
-      doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (x, y) => {
+      // 라인 위의 모든 점에서 브러시의 영향 범위를 계산하고 수집
+      const affectedCellsSet = new Set();
+
+      doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (lineX, lineY) => {
+        // 현재 선 위의 점에서 브러시가 영향을 주는 모든 셀 계산
+        // 브러시 크기와 타입에 따라 다른 영역 계산
+        const size = happyBrush.rawBrushSize; // 2 = 다이아몬드, 3+ = 팔각형
+
+        if (size === 2 && currentBrushType === BRUSH_TYPES.ROUNDED) {
+          // 다이아몬드 (2x2): 중심에서 ±1 범위의 2x2 영역
+          const startX = lineX - 1;
+          const startY = lineY - 1;
+          for (let dx = 0; dx < 2; dx++) {
+            for (let dy = 0; dy < 2; dy++) {
+              const x = startX + dx;
+              const y = startY + dy;
+              if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
+                affectedCellsSet.add(`${x},${y}`);
+              }
+            }
+          }
+        } else if (size >= 3 && currentBrushType === BRUSH_TYPES.ROUNDED) {
+          // 팔각형 (3x3+): 중심에서 ±size/2 범위의 size×size 영역
+          const halfSize = Math.floor(size / 2);
+          const startX = lineX - halfSize;
+          const startY = lineY - halfSize;
+          for (let dx = 0; dx < size; dx++) {
+            for (let dy = 0; dy < size; dy++) {
+              const x = startX + dx;
+              const y = startY + dy;
+              if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
+                affectedCellsSet.add(`${x},${y}`);
+              }
+            }
+          }
+        }
+      });
+
+      // Set에서 배열로 변환
+      affectedCellsSet.forEach(key => {
+        const [x, y] = key.split(',').map(Number);
         cellsToPaint.push({ x, y });
       });
     } else {

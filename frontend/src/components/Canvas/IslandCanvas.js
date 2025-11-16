@@ -516,94 +516,27 @@ const IslandCanvas = ({
         const affectedCells = [];
 
         // 현재 라인 점에서 영향받는 셀 계산
-        if (size === 2 && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // 다이아몬드 (2x2): happyBrush.getAffectedCells 로직 구현
-          // 브러시 포인트: (1,0), (2,1), (1,2), (0,1)
-          const diamondPoints = [
-            { x: 1, y: 0 },
-            { x: 2, y: 1 },
-            { x: 1, y: 2 },
-            { x: 0, y: 1 }
-          ];
+        // happyBrush.getAffectedCells()를 직접 사용하여 정확한 셀들을 가져옴
+        if ((size === 2 || size >= 3) && currentBrushType === BRUSH_TYPES.ROUNDED) {
+          // happyBrush의 상태를 임시로 설정하여 정확한 셀 계산
+          const originalBrushSize = happyBrush.brushSize;
+          const originalRawBrushSize = happyBrush.rawBrushSize;
 
-          // centeredCoordinate 계산 (짝수 크기)
-          const centeredCoord = {
-            x: Math.floor(point.x + 0.5) - 0.5,
-            y: Math.floor(point.y + 0.5) - 0.5
-          };
+          // 브러시 상태 임시 설정
+          happyBrush.brushSize = size;
+          happyBrush.rawBrushSize = size;
 
-          // Point-in-polygon 테스트
-          const isPointInPolygon = (px, py, polygon) => {
-            let inside = false;
-            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-              const xi = polygon[i].x, yi = polygon[i].y;
-              const xj = polygon[j].x, yj = polygon[j].y;
-              const intersect = ((yi > py) !== (yj > py)) && (px < ((xj - xi) * (py - yi) / (yj - yi) + xi));
-              if (intersect) inside = !inside;
-            }
-            return inside;
-          };
+          // getAffectedCells 호출하여 정확한 셀 가져오기
+          const cells = happyBrush.getAffectedCells(point.x, point.y);
 
-          // minX=0, maxX=2, minY=0, maxY=2
-          for (let y = 0; y < 2; y++) {
-            for (let x = 0; x < 2; x++) {
-              if (isPointInPolygon(x + 0.5, y + 0.5, diamondPoints)) {
-                const cellX = Math.floor(centeredCoord.x + x);
-                const cellY = Math.floor(centeredCoord.y + y);
-                if (cellX >= 0 && cellX < GRID_CONFIG.COLS && cellY >= 0 && cellY < GRID_CONFIG.ROWS) {
-                  affectedCells.push({ x: cellX, y: cellY });
-                }
-              }
-            }
-          }
-        } else if (size >= 3 && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // 팔각형 (3x3+): happyBrush.getAffectedCells 로직 구현
-          const ratio = 0.67;
-          const diagonalSize = Math.floor((size / 2) * ratio);
-          const straightSize = size - 2 * diagonalSize;
-          const minPoint = diagonalSize;
-          const maxPoint = diagonalSize + straightSize;
+          // 브러시 상태 복원
+          happyBrush.brushSize = originalBrushSize;
+          happyBrush.rawBrushSize = originalRawBrushSize;
 
-          // 팔각형 포인트 (중심 기준 상대 좌표)
-          const octagonPoints = [
-            { x: minPoint, y: 0 },
-            { x: maxPoint, y: 0 },
-            { x: size, y: minPoint },
-            { x: size, y: maxPoint },
-            { x: maxPoint, y: size },
-            { x: minPoint, y: size },
-            { x: 0, y: maxPoint },
-            { x: 0, y: minPoint }
-          ];
-
-          // centeredCoordinate 계산 (짝수 크기)
-          const centeredCoord = {
-            x: Math.floor(point.x + 0.5) - 0.5,
-            y: Math.floor(point.y + 0.5) - 0.5
-          };
-
-          // Point-in-polygon 테스트
-          const isPointInPolygon = (px, py, polygon) => {
-            let inside = false;
-            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-              const xi = polygon[i].x, yi = polygon[i].y;
-              const xj = polygon[j].x, yj = polygon[j].y;
-              const intersect = ((yi > py) !== (yj > py)) && (px < ((xj - xi) * (py - yi) / (yj - yi) + xi));
-              if (intersect) inside = !inside;
-            }
-            return inside;
-          };
-
-          // minX=0, maxX=size, minY=0, maxY=size
-          for (let y = 0; y < size; y++) {
-            for (let x = 0; x < size; x++) {
-              if (isPointInPolygon(x + 0.5, y + 0.5, octagonPoints)) {
-                const cellX = Math.floor(centeredCoord.x + x);
-                const cellY = Math.floor(centeredCoord.y + y);
-                if (cellX >= 0 && cellX < GRID_CONFIG.COLS && cellY >= 0 && cellY < GRID_CONFIG.ROWS) {
-                  affectedCells.push({ x: cellX, y: cellY });
-                }
-              }
+          // 가져온 셀들을 affectedCells에 추가
+          for (const cell of cells) {
+            if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
+              affectedCells.push({ x: cell.x, y: cell.y });
             }
           }
         }

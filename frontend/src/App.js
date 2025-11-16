@@ -184,11 +184,6 @@ function App() {
     return hex;
   };
 
-  // 스포이드 토글 함수
-  const handleEyedropperToggle = () => {
-    setIsEyedropperActive(!isEyedropperActive);
-  };
-
   // 직선 모드 토글 함수
   const handleLineModeToggle = (isLine) => {
     setIsLineMode(isLine);

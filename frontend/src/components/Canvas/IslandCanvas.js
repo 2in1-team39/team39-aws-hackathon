@@ -481,8 +481,6 @@ const IslandCanvas = ({
   const paintCells = (gridX, gridY, imageX, imageY) => {
     if (!backgroundImage) return;
 
-    console.log('paintCells called:', { gridX, gridY, lastPaintPos, currentTool, selectedColor });
-
     let newPaintData = { ...paintData };
     let cellsToPaint = [];
 
@@ -493,10 +491,6 @@ const IslandCanvas = ({
                          lastPaintPos);
 
     if (useSweepPath) {
-      // SweepPath: 라인 시작/끝점은 happy brush로 칠하고(브러시 모양 보존),
-      // 중간 점들의 셀은 사각형으로 칠해 gap-free 스트로크 생성
-      console.log('Using sweepPath for diamond/octagon brush');
-
       const size = happyBrush.rawBrushSize;
       const linePoints = []; // 모든 라인 점 저장
 
@@ -504,7 +498,6 @@ const IslandCanvas = ({
       doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (lineX, lineY) => {
         linePoints.push({ x: lineX, y: lineY });
       });
-      console.log(`SweepPath linePoints from (${lastPaintPos.x}, ${lastPaintPos.y}) to (${gridX}, ${gridY}):`, linePoints);
 
       // Step 2: 모든 라인 점에서 영향받는 셀 수집
       // 각 라인 점에서 getAffectedCells를 호출하여 정확한 셀들을 수집
@@ -519,7 +512,6 @@ const IslandCanvas = ({
       linePoints.forEach((point, index) => {
         const isStartPoint = index === 0;
         const isEndPoint = index === linePoints.length - 1;
-        const isMiddlePoint = !isStartPoint && !isEndPoint;
 
         // 현재 라인 점에서 영향받는 셀 계산
         if ((size === 2 || size >= 3) && currentBrushType === BRUSH_TYPES.ROUNDED) {
@@ -535,10 +527,6 @@ const IslandCanvas = ({
               { x: point.x - 1, y: point.y },
               { x: point.x, y: point.y }
             ];
-
-            if (isMiddlePoint) {
-              console.log(`Middle point [${index}] (${point.x}, ${point.y}) -> cells:`, cellsForBrush);
-            }
 
             for (const cell of cellsForBrush) {
               if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
@@ -556,14 +544,12 @@ const IslandCanvas = ({
             const startX = point.x - halfSize;
             const startY = point.y - halfSize;
 
-            const cells = [];
             for (let dx = 0; dx < size; dx++) {
               for (let dy = 0; dy < size; dy++) {
                 const x = startX + dx;
                 const y = startY + dy;
 
                 if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                  cells.push({ x, y });
                   cellsToPaint.push({
                     x: x,
                     y: y,
@@ -572,10 +558,6 @@ const IslandCanvas = ({
                   });
                 }
               }
-            }
-
-            if (isMiddlePoint) {
-              console.log(`Middle point [${index}] (${point.x}, ${point.y}) startX=${startX}, startY=${startY} -> ${cells.length} cells:`, cells);
             }
           }
         }
@@ -587,7 +569,6 @@ const IslandCanvas = ({
     } else {
       // 기본 Bresenham 직선 보간
       if (lastPaintPos) {
-        console.log('Using last paint position for interpolation:', lastPaintPos);
         const dx = Math.abs(gridX - lastPaintPos.x);
         const dy = Math.abs(gridY - lastPaintPos.y);
         const sx = lastPaintPos.x < gridX ? 1 : -1;
@@ -605,12 +586,9 @@ const IslandCanvas = ({
           if (e2 < dx) { err += dx; y += sy; }
         }
       } else {
-        console.log('First paint point, no interpolation');
         cellsToPaint.push({ x: gridX, y: gridY });
       }
     }
-
-    console.log('Cells to paint:', cellsToPaint);
 
     // 중복 제거: 같은 셀이 여러 번 나타나면 isEndpoint 우선
     const uniqueCells = new Map();

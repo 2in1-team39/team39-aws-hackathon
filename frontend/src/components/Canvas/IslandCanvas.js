@@ -7,7 +7,6 @@ import {
   erasePaintArea
 } from '../../utils/trianglePainting';
 import { happyBrush, paintWithHappyBrush } from '../../utils/happyIslandBrush';
-import { paintSweepPath } from '../../utils/SweepPathRenderer';
 
 const ObjectImage = ({ x, y, width, height, imageSrc }) => {
   const [image, setImage] = useState(null);
@@ -484,78 +483,56 @@ const IslandCanvas = ({
     console.log('paintCells called:', { gridX, gridY, lastPaintPos, currentTool, selectedColor });
 
     let newPaintData = { ...paintData };
+    let cellsToPaint = [];
 
-    // SweepPath를 사용할지 결정 (다이아몬드와 팔각형 브러시)
-    const useSweepPath = (currentTool === TOOLS.PAINT &&
-                         currentBrushType === BRUSH_TYPES.ROUNDED &&
-                         (happyBrush.brushSize === 2 || happyBrush.brushSize >= 3));
+    // Bresenham's line algorithm으로 이전 위치와 현재 위치 사이 보간
+    if (lastPaintPos) {
+      console.log('Using last paint position for interpolation:', lastPaintPos);
+      const dx = Math.abs(gridX - lastPaintPos.x);
+      const dy = Math.abs(gridY - lastPaintPos.y);
+      const sx = lastPaintPos.x < gridX ? 1 : -1;
+      const sy = lastPaintPos.y < gridY ? 1 : -1;
+      let err = dx - dy;
 
-    // SweepPath로 페인팅하는 경우
-    if (useSweepPath && lastPaintPos && selectedColor) {
-      console.log('Using sweepPath for diamond/octagon brush');
-      newPaintData = paintSweepPath(
-        newPaintData,
-        { x: lastPaintPos.x, y: lastPaintPos.y },
-        { x: gridX, y: gridY },
-        happyBrush.brushSize,
-        BRUSH_TYPES.ROUNDED,
-        selectedColor.color,
-        GRID_CONFIG.COLS,
-        GRID_CONFIG.ROWS
-      );
-    } else {
-      // 기본 셀 기반 페인팅 (직선 보간)
-      let cellsToPaint = [];
+      let x = lastPaintPos.x;
+      let y = lastPaintPos.y;
 
-      if (lastPaintPos) {
-        console.log('Using last paint position for interpolation:', lastPaintPos);
-        // Bresenham's line algorithm으로 이전 위치와 현재 위치 사이 보간
-        const dx = Math.abs(gridX - lastPaintPos.x);
-        const dy = Math.abs(gridY - lastPaintPos.y);
-        const sx = lastPaintPos.x < gridX ? 1 : -1;
-        const sy = lastPaintPos.y < gridY ? 1 : -1;
-        let err = dx - dy;
-
-        let x = lastPaintPos.x;
-        let y = lastPaintPos.y;
-
-        while (true) {
-          cellsToPaint.push({ x, y });
-          if (x === gridX && y === gridY) break;
-          const e2 = 2 * err;
-          if (e2 > -dy) { err -= dy; x += sx; }
-          if (e2 < dx) { err += dx; y += sy; }
-        }
-      } else {
-        console.log('First paint point, no interpolation');
-        cellsToPaint.push({ x: gridX, y: gridY });
+      while (true) {
+        cellsToPaint.push({ x, y });
+        if (x === gridX && y === gridY) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x += sx; }
+        if (e2 < dx) { err += dx; y += sy; }
       }
+    } else {
+      console.log('First paint point, no interpolation');
+      cellsToPaint.push({ x: gridX, y: gridY });
+    }
 
-      console.log('Cells to paint:', cellsToPaint);
+    console.log('Cells to paint:', cellsToPaint);
 
-      // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
-      cellsToPaint.forEach(({ x, y }) => {
-        if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-          if (currentTool === TOOLS.PAINT && selectedColor) {
-            // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
-            happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
-            newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
-          } else if (currentTool === TOOLS.ERASER) {
-            newPaintData = erasePaintArea(newPaintData, x, y, eraserSize, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
+    // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
+    cellsToPaint.forEach(({ x, y }) => {
+      if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
+        if (currentTool === TOOLS.PAINT && selectedColor) {
+          // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
+          happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
+          newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
+        } else if (currentTool === TOOLS.ERASER) {
+          newPaintData = erasePaintArea(newPaintData, x, y, eraserSize, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
 
-            // 오브젝트도 삭제
-            const objectToRemove = objects.find(obj => {
-              const objSize = obj.size || 1;
-              return x >= obj.gridX && x < obj.gridX + objSize &&
-                     y >= obj.gridY && y < obj.gridY + objSize;
-            });
-            if (objectToRemove) {
-              removeObject(objectToRemove.id);
-            }
+          // 오브젝트도 삭제
+          const objectToRemove = objects.find(obj => {
+            const objSize = obj.size || 1;
+            return x >= obj.gridX && x < obj.gridX + objSize &&
+                   y >= obj.gridY && y < obj.gridY + objSize;
+          });
+          if (objectToRemove) {
+            removeObject(objectToRemove.id);
           }
         }
-      });
-    }
+      }
+    });
 
     setPaintData(newPaintData);
   };

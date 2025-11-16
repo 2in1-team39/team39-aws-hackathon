@@ -7,6 +7,7 @@ import {
   erasePaintArea
 } from '../../utils/trianglePainting';
 import { happyBrush, paintWithHappyBrush } from '../../utils/happyIslandBrush';
+import { doForCellsOnLine } from '../../utils/PathHelpers';
 
 const ObjectImage = ({ x, y, width, height, imageSrc }) => {
   const [image, setImage] = useState(null);
@@ -485,34 +486,95 @@ const IslandCanvas = ({
     let newPaintData = { ...paintData };
     let cellsToPaint = [];
 
-    // Bresenham's line algorithm으로 이전 위치와 현재 위치 사이 보간
-    if (lastPaintPos) {
-      console.log('Using last paint position for interpolation:', lastPaintPos);
-      const dx = Math.abs(gridX - lastPaintPos.x);
-      const dy = Math.abs(gridY - lastPaintPos.y);
-      const sx = lastPaintPos.x < gridX ? 1 : -1;
-      const sy = lastPaintPos.y < gridY ? 1 : -1;
-      let err = dx - dy;
+    // SweepPath를 사용할지 결정 (다이아몬드와 팔각형 브러시)
+    const useSweepPath = (currentTool === TOOLS.PAINT &&
+                         currentBrushType === BRUSH_TYPES.ROUNDED &&
+                         (happyBrush.brushSize === 2 || happyBrush.brushSize >= 3) &&
+                         lastPaintPos);
 
-      let x = lastPaintPos.x;
-      let y = lastPaintPos.y;
+    if (useSweepPath) {
+      // SweepPath: 라인 위의 모든 셀에서 브러시를 sweep하여 빈 공간 제거
+      console.log('Using sweepPath for diamond/octagon brush');
 
-      while (true) {
-        cellsToPaint.push({ x, y });
-        if (x === gridX && y === gridY) break;
-        const e2 = 2 * err;
-        if (e2 > -dy) { err -= dy; x += sx; }
-        if (e2 < dx) { err += dx; y += sy; }
+      let prevPoint = null;
+      let prevDelta = null;
+
+      doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (x, y) => {
+        const currentPoint = { x, y };
+
+        // 중복 제거
+        if (prevPoint && currentPoint.x === prevPoint.x && currentPoint.y === prevPoint.y) {
+          return;
+        }
+
+        if (prevPoint) {
+          const deltaX = currentPoint.x - prevPoint.x;
+          const deltaY = currentPoint.y - prevPoint.y;
+
+          // Sweep: 이전 브러시 위치와 현재 브러시 위치 사이를 채우기
+          if (prevDelta) {
+            // 방향 변화 감지 - sweep 적용
+            const sweptDeltaX = prevPoint.x - prevDelta.x - prevPoint.x;
+            const sweptDeltaY = prevPoint.y - prevDelta.y - prevPoint.y;
+
+            if (sweptDeltaX !== 0 || sweptDeltaY !== 0) {
+              // 추가 셀 추가 (sweep)
+              cellsToPaint.push(prevPoint);
+            }
+          }
+
+          prevDelta = { x: deltaX, y: deltaY };
+        } else if (!prevPoint) {
+          prevPoint = { x, y };
+        }
+
+        cellsToPaint.push(currentPoint);
+        prevPoint = currentPoint;
+      });
+
+      // 마지막 점 추가
+      if (prevPoint) {
+        cellsToPaint.push(prevPoint);
       }
     } else {
-      console.log('First paint point, no interpolation');
-      cellsToPaint.push({ x: gridX, y: gridY });
+      // 기본 Bresenham 직선 보간
+      if (lastPaintPos) {
+        console.log('Using last paint position for interpolation:', lastPaintPos);
+        const dx = Math.abs(gridX - lastPaintPos.x);
+        const dy = Math.abs(gridY - lastPaintPos.y);
+        const sx = lastPaintPos.x < gridX ? 1 : -1;
+        const sy = lastPaintPos.y < gridY ? 1 : -1;
+        let err = dx - dy;
+
+        let x = lastPaintPos.x;
+        let y = lastPaintPos.y;
+
+        while (true) {
+          cellsToPaint.push({ x, y });
+          if (x === gridX && y === gridY) break;
+          const e2 = 2 * err;
+          if (e2 > -dy) { err -= dy; x += sx; }
+          if (e2 < dx) { err += dx; y += sy; }
+        }
+      } else {
+        console.log('First paint point, no interpolation');
+        cellsToPaint.push({ x: gridX, y: gridY });
+      }
     }
 
     console.log('Cells to paint:', cellsToPaint);
 
-    // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
+    // 중복 제거
+    const uniqueCells = new Map();
     cellsToPaint.forEach(({ x, y }) => {
+      const key = `${x},${y}`;
+      if (!uniqueCells.has(key)) {
+        uniqueCells.set(key, { x, y });
+      }
+    });
+
+    // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
+    for (const { x, y } of uniqueCells.values()) {
       if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
         if (currentTool === TOOLS.PAINT && selectedColor) {
           // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
@@ -532,7 +594,7 @@ const IslandCanvas = ({
           }
         }
       }
-    });
+    }
 
     setPaintData(newPaintData);
   };

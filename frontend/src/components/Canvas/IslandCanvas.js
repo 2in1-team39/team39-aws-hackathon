@@ -615,23 +615,16 @@ const IslandCanvas = ({
     });
 
     // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
-    for (const { x, y, isSweepPath, isEndpoint } of uniqueCells.values()) {
+    for (const { x, y, isSweepPath } of uniqueCells.values()) {
       if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
         if (currentTool === TOOLS.PAINT && selectedColor) {
-          // SweepPath 셀: 끝점(시작/끝)과 중간을 다르게 처리
+          // SweepPath: 모든 셀을 직접 사각형으로 칠하기 (happy brush 없음)
           if (isSweepPath) {
-            if (isEndpoint) {
-              // 끝점: happy brush 적용하여 정확한 브러시 모양 유지
-              happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
-              newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
-            } else {
-              // 중간 셀: 사각형으로 직접 칠해서 gap 채우기
-              const key = `${x},${y}`;
-              newPaintData[key] = {
-                type: 'square',
-                color: selectedColor.color
-              };
-            }
+            const key = `${x},${y}`;
+            newPaintData[key] = {
+              type: 'square',
+              color: selectedColor.color
+            };
           }
           // 일반 페인팅: happy brush 적용
           else {

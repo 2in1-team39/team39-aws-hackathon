@@ -556,19 +556,19 @@ const IslandCanvas = ({
       });
 
       // Step 3: cellsToPaint에 분류된 셀 추가
-      // 시작점: happy brush로 칠함
+      // 시작점과 끝점: 정확한 브러시 모양으로 칠함 (중복제거에서 우선됨)
       startPointCells.forEach(({ x, y }) => {
-        cellsToPaint.push({ x, y, isSweepPath: false }); // happy brush 사용
+        cellsToPaint.push({ x, y, isSweepPath: true, isEndpoint: true });
       });
 
       // 중간 셀: 사각형으로 칠함
       middleCells.forEach(({ x, y }) => {
-        cellsToPaint.push({ x, y, isSweepPath: true }); // 직접 사각형으로 칠함
+        cellsToPaint.push({ x, y, isSweepPath: true, isEndpoint: false });
       });
 
-      // 끝점: happy brush로 칠함
+      // 끝점: 정확한 브러시 모양으로 칠함 (중복제거에서 우선됨)
       endPointCells.forEach(({ x, y }) => {
-        cellsToPaint.push({ x, y, isSweepPath: false }); // happy brush 사용
+        cellsToPaint.push({ x, y, isSweepPath: true, isEndpoint: true });
       });
     } else {
       // 기본 Bresenham 직선 보간
@@ -598,18 +598,18 @@ const IslandCanvas = ({
 
     console.log('Cells to paint:', cellsToPaint);
 
-    // 중복 제거: 같은 셀이 여러 번 나타나면 happy brush (isSweepPath: false)를 우선
+    // 중복 제거: 같은 셀이 여러 번 나타나면 isEndpoint 우선
     const uniqueCells = new Map();
-    cellsToPaint.forEach(({ x, y, isSweepPath }) => {
+    cellsToPaint.forEach(({ x, y, isSweepPath, isEndpoint }) => {
       const key = `${x},${y}`;
       if (!uniqueCells.has(key)) {
-        uniqueCells.set(key, { x, y, isSweepPath });
+        uniqueCells.set(key, { x, y, isSweepPath, isEndpoint: isEndpoint || false });
       } else {
-        // 이미 있는 셀: happy brush (false)가 사각형 (true)보다 우선
+        // 이미 있는 셀: isEndpoint가 true인 것이 우선
         const existing = uniqueCells.get(key);
-        if (!isSweepPath && existing.isSweepPath) {
-          // 현재가 happy brush이고 기존이 사각형이면 happy brush로 업데이트
-          uniqueCells.set(key, { x, y, isSweepPath: false });
+        if (isEndpoint && !existing.isEndpoint) {
+          // 현재가 끝점이고 기존이 아니면 끝점으로 업데이트
+          uniqueCells.set(key, { x, y, isSweepPath, isEndpoint: true });
         }
       }
     });

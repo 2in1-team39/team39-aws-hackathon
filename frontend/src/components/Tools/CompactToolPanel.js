@@ -12,8 +12,6 @@ const CompactToolPanel = ({
   setBrushSize,
   currentBrushType,
   setCurrentBrushType,
-  isEyedropperActive,
-  onEyedropperToggle,
   selectedObjectType,
   onObjectSelect
 }) => {
@@ -31,8 +29,6 @@ const CompactToolPanel = ({
           <PaintPalette
             selectedColor={selectedColor}
             onColorSelect={onColorSelect}
-            onEyedropperToggle={onEyedropperToggle}
-            isEyedropperActive={isEyedropperActive}
           />
 
           <TriangleBrushPanel

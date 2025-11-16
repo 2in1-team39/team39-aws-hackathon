@@ -78,7 +78,8 @@ const IslandCanvas = ({
   setZoomLevel,
   removeObject,
   currentBrushType = BRUSH_TYPES.SQUARE,
-  isEyedropperActive = false
+  isEyedropperActive = false,
+  onClosePanel
 }) => {
   const [canvasSize, setCanvasSize] = useState({ width: 800, height: 600 });
   const [lastTouchDistance, setLastTouchDistance] = useState(null);
@@ -205,8 +206,13 @@ const IslandCanvas = ({
   };
 
   const handleStageClick = (e) => {
+    // 캔버스 클릭 시 패널 닫기
+    if (onClosePanel) {
+      onClosePanel();
+    }
+
     if (!backgroundImage || isDragging || isSpacePressed) return;
-    
+
     const pos = e.target.getStage().getPointerPosition();
     
     // 이미지 시작 위치 계산
@@ -724,14 +730,14 @@ const IslandCanvas = ({
     }}>
       <div style={{
         position: 'fixed',
-        top: '20px',
+        bottom: '20px',
         right: '20px',
         backgroundColor: 'rgba(0,0,0,0.7)',
         color: 'white',
         padding: '8px 12px',
         borderRadius: '4px',
         fontSize: '14px',
-        zIndex: 1000
+        zIndex: 999
       }}>
         줌: {Math.round(zoomLevel * 100)}%
       </div>

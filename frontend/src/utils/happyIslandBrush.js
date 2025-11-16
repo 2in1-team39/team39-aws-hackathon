@@ -270,11 +270,6 @@ export const paintWithHappyBrush = (paintData, centerX, centerY, color, gridCols
         const key = `${x},${y}`;
         const existing = newPaintData[key];
 
-        // 기존에 사각형이 있으면 덮어쓰지 않음 (사각형 우선순위)
-        if (existing && existing.type === 'square') {
-          return; // 사각형은 그대로 유지
-        }
-
         // 기존에 삼각형이 있는 경우
         if (existing && existing.type === 'triangles') {
           const existingTriangles = { ...existing.triangles };
@@ -305,7 +300,7 @@ export const paintWithHappyBrush = (paintData, centerX, centerY, color, gridCols
             };
           }
         } else {
-          // 기존 데이터가 없는 경우 새 삼각형 생성
+          // 기존 데이터가 없거나 사각형인 경우 새 삼각형으로 덮어쓰기
           newPaintData[key] = {
             type: 'triangles',
             triangles: {
@@ -363,14 +358,8 @@ export const paintWithHappyBrush = (paintData, centerX, centerY, color, gridCols
 
       if (x >= 0 && x < gridCols && y >= 0 && y < gridRows) {
         const key = `${x},${y}`;
-        const existing = newPaintData[key];
 
-        // 기존에 사각형이 있으면 덮어쓰지 않음 (사각형 우선순위)
-        if (existing && existing.type === 'square') {
-          return; // 사각형은 그대로 유지
-        }
-
-        // 사각형이 없는 경우만 삼각형으로 설정
+        // 기존 데이터를 삼각형으로 덮어쓰기
         newPaintData[key] = {
           type: 'triangles',
           triangles: {

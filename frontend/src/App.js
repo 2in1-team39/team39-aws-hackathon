@@ -65,6 +65,20 @@ function App() {
   const [selectedObjectType, setSelectedObjectType] = useState(null);
   const [brushUpdateTrigger, setBrushUpdateTrigger] = useState(0);
 
+  // 패널 상태 관리
+  const [isToolsOpen, setIsToolsOpen] = useState(false);
+  const [isObjectsOpen, setIsObjectsOpen] = useState(false);
+  const [isEraserOpen, setIsEraserOpen] = useState(false);
+  const [isChecklistOpen, setIsChecklistOpen] = useState(false);
+
+  // 모든 패널 닫기
+  const closeAllPanels = useCallback(() => {
+    setIsToolsOpen(false);
+    setIsObjectsOpen(false);
+    setIsEraserOpen(false);
+    setIsChecklistOpen(false);
+  }, []);
+
   // localStorage에 자동 저장
   const saveToLocalStorage = useCallback(() => {
     try {
@@ -464,25 +478,26 @@ function App() {
     }
   };
 
-  // 파일로 저장 (기존 기능)
+  // 파일로 저장 - 페인팅이 적용된 이미지 PNG로 내보내기
   const handleSaveProject = () => {
-    const projectData = {
-      objects,
-      paintData,
-      backgroundImage: backgroundImage ? backgroundImage.src : null,
-      timestamp: new Date().toISOString()
-    };
+    if (!stageRef.current) {
+      console.error('Canvas를 찾을 수 없습니다.');
+      return;
+    }
 
-    const dataStr = JSON.stringify(projectData);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
+    try {
+      // Konva Stage를 이미지로 변환
+      const uri = stageRef.current.toDataURL();
 
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'island-design.json';
-    link.click();
-
-    URL.revokeObjectURL(url);
+      // 다운로드 링크 생성
+      const link = document.createElement('a');
+      link.href = uri;
+      link.download = `island-design-${new Date().getTime()}.png`;
+      link.click();
+    } catch (error) {
+      console.error('이미지 저장 실패:', error);
+      alert('이미지 저장 중 오류가 발생했습니다.');
+    }
   };
 
   // 디바이스 감지
@@ -514,8 +529,6 @@ function App() {
         setCurrentBrushType={handleBrushTypeChange}
         isLineMode={isLineMode}
         onLineModeToggle={handleLineModeToggle}
-        isEyedropperActive={isEyedropperActive}
-        onEyedropperToggle={handleEyedropperToggle}
         selectedObjectType={selectedObjectType}
         onObjectSelect={handleObjectSelect}
         onImageUpload={handleImageUpload}
@@ -526,6 +539,14 @@ function App() {
         onSaveProject={handleSaveProject}
         onClearCanvas={clearCanvas}
         onClearSavedData={clearSavedData}
+        isToolsOpen={isToolsOpen}
+        setIsToolsOpen={setIsToolsOpen}
+        isObjectsOpen={isObjectsOpen}
+        setIsObjectsOpen={setIsObjectsOpen}
+        isEraserOpen={isEraserOpen}
+        setIsEraserOpen={setIsEraserOpen}
+        isChecklistOpen={isChecklistOpen}
+        setIsChecklistOpen={setIsChecklistOpen}
       />
       
       {step === 'upload' && (
@@ -584,6 +605,7 @@ function App() {
           zoomLevel={zoomLevel}
           setZoomLevel={setZoomLevel}
           removeObject={removeObject}
+          onClosePanel={closeAllPanels}
         />
       )}
       

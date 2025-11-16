@@ -15,8 +15,6 @@ const FloatingToolbar = ({
   setEraserSize,
   currentBrushType,
   setCurrentBrushType,
-  isEyedropperActive,
-  onEyedropperToggle,
   selectedObjectType,
   onObjectSelect,
   onImageUpload,
@@ -26,13 +24,25 @@ const FloatingToolbar = ({
   setStep,
   onSaveProject,
   onClearCanvas,
-  onClearSavedData
+  onClearSavedData,
+  isToolsOpen,
+  setIsToolsOpen,
+  isObjectsOpen,
+  setIsObjectsOpen,
+  isEraserOpen,
+  setIsEraserOpen,
+  isChecklistOpen,
+  setIsChecklistOpen
 }) => {
-  const [isToolsOpen, setIsToolsOpen] = useState(false);
-  const [isObjectsOpen, setIsObjectsOpen] = useState(false);
-  const [isEraserOpen, setIsEraserOpen] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
-  const [isChecklistOpen, setIsChecklistOpen] = useState(false);
+
+  // 모든 도구 패널을 닫는 헬퍼 함수
+  const closeAllToolPanels = () => {
+    setIsToolsOpen(false);
+    setIsObjectsOpen(false);
+    setIsEraserOpen(false);
+    setIsChecklistOpen(false);
+  };
 
   // 디바이스 감지 (터치 디바이스인지 확인)
   const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -105,8 +115,15 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={() => {
-              onToolChange('paint'); // 페인트 도구로 전환
-              setIsToolsOpen(!isToolsOpen);
+              if (isToolsOpen) {
+                // 이미 열려있으면 닫기
+                setIsToolsOpen(false);
+              } else {
+                // 다른 패널이 열려있으면 닫고 페인트 패널 열기
+                closeAllToolPanels();
+                onToolChange('paint');
+                setIsToolsOpen(true);
+              }
             }}
             style={getButtonStyle(currentTool === 'paint' || isToolsOpen, 'white', '#4CAF50')}
           >
@@ -118,16 +135,15 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={() => {
-              if (currentTool === 'eraser') {
-                // 이미 지우개 도구가 선택된 경우 패널만 토글
-                setIsEraserOpen(!isEraserOpen);
+              if (isEraserOpen) {
+                // 이미 열려있으면 닫기
+                setIsEraserOpen(false);
               } else {
-                // 다른 도구에서 지우개로 변경하는 경우
+                // 다른 패널이 열려있으면 닫고 지우개 패널 열기
+                closeAllToolPanels();
                 onToolChange('eraser');
                 setIsEraserOpen(true);
               }
-              setIsToolsOpen(false); // 페인트 패널 닫기
-              setIsObjectsOpen(false); // 오브젝트 패널 닫기
             }}
             style={getButtonStyle(currentTool === 'eraser' || isEraserOpen, 'white', '#f44336')}
             title="지우개"
@@ -140,10 +156,14 @@ const FloatingToolbar = ({
         {step === 'edit' && (
           <button
             onClick={() => {
-              setIsObjectsOpen(!isObjectsOpen);
-              if (!isObjectsOpen) {
-                onToolChange('object'); // 오브젝트 도구로 전환
-                setIsToolsOpen(false); // 페인트 패널 닫기
+              if (isObjectsOpen) {
+                // 이미 열려있으면 닫기
+                setIsObjectsOpen(false);
+              } else {
+                // 다른 패널이 열려있으면 닫고 오브젝트 패널 열기
+                closeAllToolPanels();
+                onToolChange('object');
+                setIsObjectsOpen(true);
               }
             }}
             style={getButtonStyle(isObjectsOpen, 'white', '#FF9800')}
@@ -157,7 +177,16 @@ const FloatingToolbar = ({
         {/* 체크리스트 버튼 */}
         {step === 'edit' && (
           <button
-            onClick={() => setIsChecklistOpen(!isChecklistOpen)}
+            onClick={() => {
+              if (isChecklistOpen) {
+                // 이미 열려있으면 닫기
+                setIsChecklistOpen(false);
+              } else {
+                // 다른 패널이 열려있으면 닫고 체크리스트 패널 열기
+                closeAllToolPanels();
+                setIsChecklistOpen(true);
+              }
+            }}
             style={getButtonStyle(isChecklistOpen, 'white', '#9C27B0')}
           >
             ✅
@@ -209,7 +238,7 @@ const FloatingToolbar = ({
         <div style={{
           position: 'fixed',
           top: isTablet ? '100px' : '80px',
-          left: isTablet ? '50%' : '20px',
+          left: isTablet ? '50%' : '80px',
           transform: isTablet ? 'translateX(-50%)' : 'none',
           backgroundColor: 'white',
           borderRadius: isTablet ? '15px' : '10px',
@@ -227,8 +256,6 @@ const FloatingToolbar = ({
             setBrushSize={setBrushSize}
             currentBrushType={currentBrushType}
             setCurrentBrushType={setCurrentBrushType}
-            isEyedropperActive={isEyedropperActive}
-            onEyedropperToggle={onEyedropperToggle}
             selectedObjectType={selectedObjectType}
             onObjectSelect={onObjectSelect}
           />
@@ -240,7 +267,7 @@ const FloatingToolbar = ({
         <div style={{
           position: 'fixed',
           top: isTablet ? '100px' : '140px',
-          left: isTablet ? '50%' : '20px',
+          left: isTablet ? '50%' : '80px',
           transform: isTablet ? 'translateX(-50%)' : 'none',
           backgroundColor: 'white',
           borderRadius: isTablet ? '15px' : '10px',
@@ -324,7 +351,7 @@ const FloatingToolbar = ({
         <div style={{
           position: 'fixed',
           top: isTablet ? '100px' : '80px',
-          left: isTablet ? '50%' : '140px',
+          left: isTablet ? '50%' : '80px',
           transform: isTablet ? 'translateX(-50%)' : 'none',
           zIndex: 999
         }}>

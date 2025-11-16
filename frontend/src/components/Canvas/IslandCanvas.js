@@ -517,29 +517,65 @@ const IslandCanvas = ({
 
         // 현재 라인 점에서 영향받는 셀 계산
         if (size === 2 && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // 다이아몬드 (2x2): 중심에서 ±1 범위의 2x2 영역
-          const startX = point.x - 1;
-          const startY = point.y - 1;
-          for (let dx = 0; dx < 2; dx++) {
-            for (let dy = 0; dy < 2; dy++) {
-              const x = startX + dx;
-              const y = startY + dy;
-              if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                affectedCells.push({ x, y });
-              }
+          // 다이아몬드 (2x2): 정확한 다이아몬드 모양 셀 4개
+          // 브러시 포인트: (1,0), (2,1), (1,2), (0,1) - 중심 기준 상대 좌표
+          // 중심에서 -1 오프셋 적용하여 실제 좌표로 변환
+          const diamondCells = [
+            { x: point.x, y: point.y - 1 },      // 상단 (1,0) → (1,-1)
+            { x: point.x + 1, y: point.y },      // 우측 (2,1) → (1,0)
+            { x: point.x, y: point.y + 1 },      // 하단 (1,2) → (1,1)
+            { x: point.x - 1, y: point.y }       // 좌측 (0,1) → (-1,0)
+          ];
+          for (const cell of diamondCells) {
+            if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
+              affectedCells.push(cell);
             }
           }
         } else if (size >= 3 && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // 팔각형 (3x3+): 중심에서 ±size/2 범위의 size×size 영역
+          // 팔각형 (3x3+): point-in-polygon 테스트로 정확한 셀들만 선택
+          const ratio = 0.67;
+          const diagonalSize = Math.floor((size / 2) * ratio);
+          const straightSize = size - 2 * diagonalSize;
+          const minPoint = diagonalSize;
+          const maxPoint = diagonalSize + straightSize;
+
+          // 팔각형 포인트 (중심 기준 상대 좌표)
+          const octagonPoints = [
+            { x: minPoint, y: 0 },
+            { x: maxPoint, y: 0 },
+            { x: size, y: minPoint },
+            { x: size, y: maxPoint },
+            { x: maxPoint, y: size },
+            { x: minPoint, y: size },
+            { x: 0, y: maxPoint },
+            { x: 0, y: minPoint }
+          ];
+
+          // Point-in-polygon 테스트
+          const isPointInPolygon = (px, py, polygon) => {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+              const xi = polygon[i].x, yi = polygon[i].y;
+              const xj = polygon[j].x, yj = polygon[j].y;
+              const intersect = ((yi > py) !== (yj > py)) && (px < ((xj - xi) * (py - yi) / (yj - yi) + xi));
+              if (intersect) inside = !inside;
+            }
+            return inside;
+          };
+
+          // 팔각형 경계 내의 모든 셀 수집
           const halfSize = Math.floor(size / 2);
-          const startX = point.x - halfSize;
-          const startY = point.y - halfSize;
-          for (let dx = 0; dx < size; dx++) {
-            for (let dy = 0; dy < size; dy++) {
-              const x = startX + dx;
-              const y = startY + dy;
-              if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                affectedCells.push({ x, y });
+          for (let dy = -halfSize - 1; dy <= halfSize + 1; dy++) {
+            for (let dx = -halfSize - 1; dx <= halfSize + 1; dx++) {
+              const x = point.x + dx;
+              const y = point.y + dy;
+              // 상대 좌표로 변환하여 point-in-polygon 테스트
+              const relX = dx + halfSize;
+              const relY = dy + halfSize;
+              if (isPointInPolygon(relX + 0.5, relY + 0.5, octagonPoints)) {
+                if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
+                  affectedCells.push({ x, y });
+                }
               }
             }
           }

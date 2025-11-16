@@ -505,67 +505,42 @@ const IslandCanvas = ({
         linePoints.push({ x: lineX, y: lineY });
       });
 
-      // Step 2: 각 라인 점에서 영향받는 셀 계산 및 분류
-      const startPointCells = []; // 시작점 셀 (happy brush로 칠함)
-      const middleCells = []; // 중간 셀 (사각형으로 칠함)
-      const endPointCells = []; // 끝점 셀 (happy brush로 칠함)
+      // Step 2: 모든 라인 점에서 영향받는 셀 수집
+      // 각 라인 점에서 getAffectedCells를 호출하여 정확한 셀들을 수집
+      // 중복은 나중에 제거되며, 자동으로 gap-free 스트로크가 생성됨
+      const originalBrushSize = happyBrush.brushSize;
+      const originalRawBrushSize = happyBrush.rawBrushSize;
+
+      // 브러시 상태 임시 설정
+      happyBrush.brushSize = size;
+      happyBrush.rawBrushSize = size;
 
       linePoints.forEach((point, index) => {
         const isStartPoint = index === 0;
         const isEndPoint = index === linePoints.length - 1;
-        const affectedCells = [];
 
         // 현재 라인 점에서 영향받는 셀 계산
-        // happyBrush.getAffectedCells()를 직접 사용하여 정확한 셀들을 가져옴
         if ((size === 2 || size >= 3) && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // happyBrush의 상태를 임시로 설정하여 정확한 셀 계산
-          const originalBrushSize = happyBrush.brushSize;
-          const originalRawBrushSize = happyBrush.rawBrushSize;
-
-          // 브러시 상태 임시 설정
-          happyBrush.brushSize = size;
-          happyBrush.rawBrushSize = size;
-
           // getAffectedCells 호출하여 정확한 셀 가져오기
           const cells = happyBrush.getAffectedCells(point.x, point.y);
 
-          // 브러시 상태 복원
-          happyBrush.brushSize = originalBrushSize;
-          happyBrush.rawBrushSize = originalRawBrushSize;
-
-          // 가져온 셀들을 affectedCells에 추가
+          // 모든 셀을 cellsToPaint에 추가 (끝점/중간 표시)
           for (const cell of cells) {
             if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
-              affectedCells.push({ x: cell.x, y: cell.y });
+              cellsToPaint.push({
+                x: cell.x,
+                y: cell.y,
+                isSweepPath: true,
+                isEndpoint: isStartPoint || isEndPoint
+              });
             }
           }
         }
-
-        // 셀을 분류: 시작점, 중간, 끝점
-        if (isStartPoint) {
-          startPointCells.push(...affectedCells);
-        } else if (isEndPoint) {
-          endPointCells.push(...affectedCells);
-        } else {
-          middleCells.push(...affectedCells);
-        }
       });
 
-      // Step 3: cellsToPaint에 분류된 셀 추가
-      // 시작점과 끝점: 정확한 브러시 모양으로 칠함 (중복제거에서 우선됨)
-      startPointCells.forEach(({ x, y }) => {
-        cellsToPaint.push({ x, y, isSweepPath: true, isEndpoint: true });
-      });
-
-      // 중간 셀: 사각형으로 칠함
-      middleCells.forEach(({ x, y }) => {
-        cellsToPaint.push({ x, y, isSweepPath: true, isEndpoint: false });
-      });
-
-      // 끝점: 정확한 브러시 모양으로 칠함 (중복제거에서 우선됨)
-      endPointCells.forEach(({ x, y }) => {
-        cellsToPaint.push({ x, y, isSweepPath: true, isEndpoint: true });
-      });
+      // 브러시 상태 복원
+      happyBrush.brushSize = originalBrushSize;
+      happyBrush.rawBrushSize = originalRawBrushSize;
     } else {
       // 기본 Bresenham 직선 보간
       if (lastPaintPos) {
@@ -615,6 +590,8 @@ const IslandCanvas = ({
       if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
         if (currentTool === TOOLS.PAINT && selectedColor) {
           // SweepPath: 모든 셀을 직접 사각형으로 칠하기 (happy brush 없음)
+          // getAffectedCells가 이미 정확한 브러시 모양의 셀들을 반환하므로
+          // 끝점도 자동으로 올바른 브러시 모양이 유지됨
           if (isSweepPath) {
             const key = `${x},${y}`;
             newPaintData[key] = {

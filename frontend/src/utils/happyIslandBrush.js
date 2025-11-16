@@ -123,12 +123,22 @@ export class HappyIslandBrush {
 
   // 브러시 크기 증가
   incrementBrush() {
-    this.rawBrushSize = Math.max(this.brushSize + 1, 0);
-    this.brushSize = Math.max(this.rawBrushSize, 1);
+    // ROUNDED 타입은 크기 2부터 시작하도록 제한
+    if (this.brushType === 'rounded' && this.rawBrushSize === 1) {
+      this.rawBrushSize = 2;
+      this.brushSize = 2;
+    } else {
+      this.rawBrushSize = Math.max(this.brushSize + 1, 0);
+      this.brushSize = Math.max(this.rawBrushSize, 1);
+    }
   }
 
   // 브러시 크기 감소
   decrementBrush() {
+    // ROUNDED 타입은 크기 2가 최소
+    if (this.brushType === 'rounded' && this.rawBrushSize === 2) {
+      return; // 감소 불가
+    }
     this.rawBrushSize = Math.max(this.brushSize - 1, 0);
     this.brushSize = Math.max(this.rawBrushSize, 1);
   }

@@ -129,6 +129,40 @@
   box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
 }
 
+.triangle-direction-controls {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.triangle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.triangle-btn:hover {
+  background: #f5f5f5;
+  border-color: #bbb;
+  transform: translateY(-1px);
+}
+
+.triangle-btn:active {
+  background: #e8f5e9;
+  border-color: #4caf50;
+  box-shadow: 0 2px 6px rgba(76, 175, 80, 0.3);
+  color: #4caf50;
+}
+
 /* 태블릿용 반응형 스타일 */
 @media (max-width: 1024px) and (min-width: 768px) {
   .triangle-brush-panel {
@@ -182,6 +216,20 @@
   }
 
   .mode-btn {
+    padding: 12px 16px;
+    font-size: 16px;
+    min-height: 50px;
+    border-radius: 8px;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  .triangle-direction-controls {
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .triangle-btn {
     padding: 12px 16px;
     font-size: 16px;
     min-height: 50px;

@@ -237,14 +237,52 @@ export const paintWithHappyBrush = (paintData, centerX, centerY, color, gridCols
     return newPaintData;
   }
 
-  // 크기 1: 1x1 사각형 - 기존 데이터 완전히 덮어쓰기
+  // 크기 1: 1x1 (삼각형 또는 사각형)
   if (size === 1) {
     if (centerX >= 0 && centerX < gridCols && centerY >= 0 && centerY < gridRows) {
       const key = `${centerX},${centerY}`;
-      newPaintData[key] = {
-        type: 'square',
-        color: color
-      };
+
+      // ROUNDED 타입이면 방향에 따른 삼각형 사용
+      if (brushType === BRUSH_TYPES.ROUNDED) {
+        const triangleType = happyBrush.getTriangleType();
+        const existing = newPaintData[key];
+
+        // 기존 삼각형이 있는 경우
+        if (existing && existing.type === 'triangles') {
+          const existingTriangles = { ...existing.triangles };
+          existingTriangles[triangleType] = color;
+
+          // 4개 삼각형이 모두 같은 색으로 칠해진 경우 사각형으로 변환
+          const triangleColors = Object.values(existingTriangles);
+          const uniqueColors = [...new Set(triangleColors)];
+
+          if (Object.keys(existingTriangles).length === 4 && uniqueColors.length === 1) {
+            newPaintData[key] = {
+              type: 'square',
+              color: color
+            };
+          } else {
+            newPaintData[key] = {
+              type: 'triangles',
+              triangles: existingTriangles
+            };
+          }
+        } else {
+          // 새로운 삼각형 추가
+          newPaintData[key] = {
+            type: 'triangles',
+            triangles: {
+              [triangleType]: color
+            }
+          };
+        }
+      } else {
+        // SQUARE 타입이면 사각형으로 칠하기
+        newPaintData[key] = {
+          type: 'square',
+          color: color
+        };
+      }
     }
     return newPaintData;
   }
@@ -337,80 +375,73 @@ export const paintWithHappyBrush = (paintData, centerX, centerY, color, gridCols
     return newPaintData;
   }
 
-  // 크기 3: 3x3 팔각형 (가운데 십자 5칸은 사각형, 모서리 4칸은 삼각형) - 브러시 영역 완전히 덮어쓰기
-  if (size === 3 && brushType === BRUSH_TYPES.ROUNDED) {
-    const startX = centerX - 1;
-    const startY = centerY - 1;
+  // 크기 3+: 팔각형 브러시 (꼭짓점은 삼각형, 나머지는 사각형)
+  if (size >= 3 && brushType === BRUSH_TYPES.ROUNDED) {
+    const halfSize = Math.floor(size / 2);
+    const startX = centerX - halfSize;
+    const startY = centerY - halfSize;
 
-    // 3x3 영역을 완전히 새로운 팔각형 패턴으로 덮어쓰기
+    // 팔각형 모양으로 칠하기
+    for (let dx = 0; dx < size; dx++) {
+      for (let dy = 0; dy < size; dy++) {
+        const x = startX + dx;
+        const y = startY + dy;
 
-    // 모서리 삼각형들 (4칸)
-    const cornerPattern = [
-      { dx: 0, dy: 0, triangleType: BRUSH_TYPES.TRIANGLE_BR }, // 왼쪽 위
-      { dx: 2, dy: 0, triangleType: BRUSH_TYPES.TRIANGLE_BL }, // 오른쪽 위
-      { dx: 0, dy: 2, triangleType: BRUSH_TYPES.TRIANGLE_TR }, // 왼쪽 아래
-      { dx: 2, dy: 2, triangleType: BRUSH_TYPES.TRIANGLE_TL }  // 오른쪽 아래
-    ];
+        if (x >= 0 && x < gridCols && y >= 0 && y < gridRows) {
+          const key = `${x},${y}`;
+          const isCorner = (dx === 0 || dx === size - 1) && (dy === 0 || dy === size - 1);
 
-    cornerPattern.forEach(({ dx, dy, triangleType }) => {
-      const x = startX + dx;
-      const y = startY + dy;
+          if (isCorner) {
+            // 꼭지점은 삼각형으로 칠하기
+            let triangleType;
+            if (dx === 0 && dy === 0) {
+              triangleType = BRUSH_TYPES.TRIANGLE_BR; // 왼쪽 위
+            } else if (dx === size - 1 && dy === 0) {
+              triangleType = BRUSH_TYPES.TRIANGLE_BL; // 오른쪽 위
+            } else if (dx === 0 && dy === size - 1) {
+              triangleType = BRUSH_TYPES.TRIANGLE_TR; // 왼쪽 아래
+            } else {
+              triangleType = BRUSH_TYPES.TRIANGLE_TL; // 오른쪽 아래
+            }
 
-      if (x >= 0 && x < gridCols && y >= 0 && y < gridRows) {
-        const key = `${x},${y}`;
-
-        // 기존 데이터를 삼각형으로 덮어쓰기
-        newPaintData[key] = {
-          type: 'triangles',
-          triangles: {
-            [triangleType]: color
+            newPaintData[key] = {
+              type: 'triangles',
+              triangles: {
+                [triangleType]: color
+              }
+            };
+          } else {
+            // 나머지는 사각형으로 칠하기
+            newPaintData[key] = {
+              type: 'square',
+              color: color
+            };
           }
-        };
+        }
       }
-    });
-
-    // 가운데 십자 모양 (5칸)
-    const crossPattern = [
-      { dx: 1, dy: 0 }, // 위
-      { dx: 0, dy: 1 }, // 왼쪽
-      { dx: 1, dy: 1 }, // 가운데
-      { dx: 2, dy: 1 }, // 오른쪽
-      { dx: 1, dy: 2 }  // 아래
-    ];
-
-    crossPattern.forEach(({ dx, dy }) => {
-      const x = startX + dx;
-      const y = startY + dy;
-
-      if (x >= 0 && x < gridCols && y >= 0 && y < gridRows) {
-        const key = `${x},${y}`;
-        // 기존 데이터를 완전히 덮어쓰기
-        newPaintData[key] = {
-          type: 'square',
-          color: color
-        };
-      }
-    });
+    }
 
     return newPaintData;
   }
 
-  // 크기 3+: 3x3+ 사각형 (사각 브러시 타입) 또는 더 큰 둥근 브러시
-  const halfSize = Math.floor(size / 2);
-  const startX = centerX - halfSize;
-  const startY = centerY - halfSize;
+  // 크기 3+: 사각형 브러시 (사각 브러시 타입) - 전체 사각형으로 칠하기
+  if (brushType === BRUSH_TYPES.SQUARE) {
+    const halfSize = Math.floor(size / 2);
+    const startX = centerX - halfSize;
+    const startY = centerY - halfSize;
 
-  for (let dx = 0; dx < size; dx++) {
-    for (let dy = 0; dy < size; dy++) {
-      const x = startX + dx;
-      const y = startY + dy;
+    for (let dx = 0; dx < size; dx++) {
+      for (let dy = 0; dy < size; dy++) {
+        const x = startX + dx;
+        const y = startY + dy;
 
-      if (x >= 0 && x < gridCols && y >= 0 && y < gridRows) {
-        const key = `${x},${y}`;
-        newPaintData[key] = {
-          type: 'square',
-          color: color
-        };
+        if (x >= 0 && x < gridCols && y >= 0 && y < gridRows) {
+          const key = `${x},${y}`;
+          newPaintData[key] = {
+            type: 'square',
+            color: color
+          };
+        }
       }
     }
   }

@@ -28,6 +28,11 @@ const TriangleBrushPanel = ({
       happyBrush.rawBrushSize = 2;
       happyBrush.brushSize = 2;
     }
+    // SQUARE 타입일 때 크기 1로 설정
+    if (type === BRUSH_TYPES.SQUARE) {
+      happyBrush.rawBrushSize = 1;
+      happyBrush.brushSize = 1;
+    }
     onBrushTypeChange(type);
   };
 
@@ -50,6 +55,10 @@ const TriangleBrushPanel = ({
         [BRUSH_TYPES.TRIANGLE_BR]: '우하단'
       };
       return `1x1 ${directionNames[currentBrushType]}`;
+    }
+
+    if (currentBrushType === BRUSH_TYPES.SQUARE) {
+      return `${happyBrush.brushSize}x${happyBrush.brushSize} 사각형`;
     }
 
     if (happyBrush.rawBrushSize === 0) return '삼각형';

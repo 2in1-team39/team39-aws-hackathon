@@ -140,6 +140,10 @@ export class HappyIslandBrush {
     if (this.brushType === 'rounded' && this.rawBrushSize === 2) {
       return; // 감소 불가
     }
+    // SQUARE 타입은 크기 1이 최소
+    if (this.brushType === 'square' && this.rawBrushSize === 1) {
+      return; // 감소 불가
+    }
     this.rawBrushSize = Math.max(this.brushSize - 1, 0);
     this.brushSize = Math.max(this.rawBrushSize, 1);
   }

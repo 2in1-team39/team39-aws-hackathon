@@ -382,10 +382,38 @@ function App() {
       return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Cpath d='M${size/2},0 L${size},${size} L0,${size} Z' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
     }
 
-    // 크기 1 (1x1 사각형)
+    // 크기 1 (1x1 삼각형 또는 사각형)
     if (rawBrushSize === 1) {
       const size = Math.max(8, cellSize);
-      return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+
+      if (brushType === 'rounded') {
+        // ROUNDED 타입: 방향에 따른 삼각형 표시
+        const triangleType = happyBrush.getTriangleType();
+        let pathData;
+        const offset = 1;
+
+        switch (triangleType) {
+          case 'triangle_tl': // 왼쪽 위
+            pathData = `M${offset},${offset} L${size},${offset} L${offset},${size} Z`;
+            break;
+          case 'triangle_tr': // 오른쪽 위
+            pathData = `M${size-offset},${offset} L${size-offset},${size} L${offset},${offset} Z`;
+            break;
+          case 'triangle_bl': // 왼쪽 아래
+            pathData = `M${offset},${size-offset} L${offset},${offset} L${size},${size-offset} Z`;
+            break;
+          case 'triangle_br': // 오른쪽 아래
+            pathData = `M${size-offset},${size-offset} L${size},${offset} L${offset},${size} Z`;
+            break;
+          default:
+            pathData = `M${size/2},0 L${size},${size} L0,${size} Z`;
+        }
+
+        return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Cpath d='${pathData}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+      } else {
+        // SQUARE 타입: 사각형
+        return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+      }
     }
 
     // 크기 2
@@ -407,8 +435,16 @@ function App() {
       const size = Math.max(24, cellSize * rawBrushSize);
 
       if (brushType === 'rounded') {
-        // 팔각형 모양 (간단화해서 원형으로 표시)
-        return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Ccircle cx='${size/2}' cy='${size/2}' r='${size/2-1}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+        // 팔각형 모양으로 표시
+        const s = size;
+        const cornerSize = Math.floor(s / 3);
+        const pathData = `
+          M ${cornerSize},0 L ${s - cornerSize},0
+          L ${s},${cornerSize} L ${s},${s - cornerSize}
+          L ${s - cornerSize},${s} L ${cornerSize},${s}
+          L 0,${s - cornerSize} L 0,${cornerSize} Z
+        `;
+        return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Cpath d='${pathData}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
       } else {
         // 사각형
         return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Crect width='${size}' height='${size}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;

@@ -21,6 +21,8 @@ const TriangleBrushPanel = ({
 
   const handleBrushTypeChange = (type) => {
     happyBrush.brushType = type;
+    happyBrush.isTriangleBrush = false;
+
     // ROUNDED 타입일 때 크기 2로 설정
     if (type === BRUSH_TYPES.ROUNDED && happyBrush.rawBrushSize < 2) {
       happyBrush.rawBrushSize = 2;
@@ -30,25 +32,26 @@ const TriangleBrushPanel = ({
   };
 
   const handleTriangleDirectionSelect = (triangleType) => {
-    // 삼각형 방향 선택 시 처리
-    // 실제 브러시의 direction을 설정하기 위해 행동 시뮬레이션
+    // 삼각형 브러시 타입 선택
+    happyBrush.brushType = triangleType;
+    happyBrush.isTriangleBrush = true;
     happyBrush.rawBrushSize = 1;
     happyBrush.brushSize = 1;
-    happyBrush.brushType = BRUSH_TYPES.ROUNDED;
-
-    // 삼각형 방향에 따라 방향 설정
-    const directionMap = {
-      [BRUSH_TYPES.TRIANGLE_TL]: { x: 0, y: 0 },
-      [BRUSH_TYPES.TRIANGLE_TR]: { x: 1, y: 0 },
-      [BRUSH_TYPES.TRIANGLE_BL]: { x: 0, y: 1 },
-      [BRUSH_TYPES.TRIANGLE_BR]: { x: 1, y: 1 }
-    };
-
-    happyBrush.direction = directionMap[triangleType] || { x: 0, y: 0 };
-    onBrushTypeChange(BRUSH_TYPES.ROUNDED);
+    onBrushTypeChange(triangleType);
   };
 
   const getBrushSizeDisplay = () => {
+    // 1x1 삼각형 브러시
+    if ([BRUSH_TYPES.TRIANGLE_TL, BRUSH_TYPES.TRIANGLE_TR, BRUSH_TYPES.TRIANGLE_BL, BRUSH_TYPES.TRIANGLE_BR].includes(currentBrushType)) {
+      const directionNames = {
+        [BRUSH_TYPES.TRIANGLE_TL]: '좌상단',
+        [BRUSH_TYPES.TRIANGLE_TR]: '우상단',
+        [BRUSH_TYPES.TRIANGLE_BL]: '좌하단',
+        [BRUSH_TYPES.TRIANGLE_BR]: '우하단'
+      };
+      return `1x1 ${directionNames[currentBrushType]}`;
+    }
+
     if (happyBrush.rawBrushSize === 0) return '삼각형';
     if (currentBrushType === BRUSH_TYPES.ROUNDED) {
       if (happyBrush.brushSize === 1) return '1x1 삼각형';
@@ -76,6 +79,38 @@ const TriangleBrushPanel = ({
         </button>
       </div>
 
+      <h4>1x1 삼각형</h4>
+      <div className="triangle-direction-controls">
+        <button
+          className={`triangle-btn ${currentBrushType === BRUSH_TYPES.TRIANGLE_TL ? 'active' : ''}`}
+          onClick={() => handleTriangleDirectionSelect(BRUSH_TYPES.TRIANGLE_TL)}
+          title="좌측상단방향 삼각형"
+        >
+          🔺 좌상
+        </button>
+        <button
+          className={`triangle-btn ${currentBrushType === BRUSH_TYPES.TRIANGLE_TR ? 'active' : ''}`}
+          onClick={() => handleTriangleDirectionSelect(BRUSH_TYPES.TRIANGLE_TR)}
+          title="우측상단방향 삼각형"
+        >
+          🔺 우상
+        </button>
+        <button
+          className={`triangle-btn ${currentBrushType === BRUSH_TYPES.TRIANGLE_BL ? 'active' : ''}`}
+          onClick={() => handleTriangleDirectionSelect(BRUSH_TYPES.TRIANGLE_BL)}
+          title="좌측하단방향 삼각형"
+        >
+          🔺 좌하
+        </button>
+        <button
+          className={`triangle-btn ${currentBrushType === BRUSH_TYPES.TRIANGLE_BR ? 'active' : ''}`}
+          onClick={() => handleTriangleDirectionSelect(BRUSH_TYPES.TRIANGLE_BR)}
+          title="우측하단방향 삼각형"
+        >
+          🔺 우하
+        </button>
+      </div>
+
       <h4>브러시 크기</h4>
       <div className="brush-size-controls">
         <button className="size-btn" onClick={handleSizeDecrease}>-</button>
@@ -85,42 +120,6 @@ const TriangleBrushPanel = ({
       <div className="size-info">
         크기 0 = 삼각형, 1+ = 일반 브러시
       </div>
-
-      {currentBrushType === BRUSH_TYPES.ROUNDED && happyBrush.brushSize === 1 && (
-        <>
-          <h4>1x1 삼각형 방향</h4>
-          <div className="triangle-direction-controls">
-            <button
-              className="triangle-btn"
-              onClick={() => handleTriangleDirectionSelect(BRUSH_TYPES.TRIANGLE_TL)}
-              title="좌측상단방향 삼각형"
-            >
-              🔺 좌상
-            </button>
-            <button
-              className="triangle-btn"
-              onClick={() => handleTriangleDirectionSelect(BRUSH_TYPES.TRIANGLE_TR)}
-              title="우측상단방향 삼각형"
-            >
-              🔺 우상
-            </button>
-            <button
-              className="triangle-btn"
-              onClick={() => handleTriangleDirectionSelect(BRUSH_TYPES.TRIANGLE_BL)}
-              title="좌측하단방향 삼각형"
-            >
-              🔺 좌하
-            </button>
-            <button
-              className="triangle-btn"
-              onClick={() => handleTriangleDirectionSelect(BRUSH_TYPES.TRIANGLE_BR)}
-              title="우측하단방향 삼각형"
-            >
-              🔺 우하
-            </button>
-          </div>
-        </>
-      )}
     </div>
   );
 };

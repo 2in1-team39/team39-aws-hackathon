@@ -376,6 +376,32 @@ function App() {
     const cellSize = Math.min(backgroundImage.width / 112, backgroundImage.height / 96) * zoomLevel;
     const color = selectedColor ? selectedColor.color.replace('#', '%23') : '%23000000';
 
+    // 1x1 삼각형 브러시 타입 (TRIANGLE_TL, TRIANGLE_TR, TRIANGLE_BL, TRIANGLE_BR)
+    if (happyBrush.isTriangleBrush && ['triangle-tl', 'triangle-tr', 'triangle-bl', 'triangle-br'].includes(brushType)) {
+      const size = Math.max(8, cellSize);
+      let pathData;
+      const offset = 1;
+
+      switch (brushType) {
+        case 'triangle-tl': // 왼쪽 위
+          pathData = `M${offset},${offset} L${size},${offset} L${offset},${size} Z`;
+          break;
+        case 'triangle-tr': // 오른쪽 위
+          pathData = `M${size-offset},${offset} L${size-offset},${size} L${offset},${offset} Z`;
+          break;
+        case 'triangle-bl': // 왼쪽 아래
+          pathData = `M${offset},${size-offset} L${offset},${offset} L${size},${size-offset} Z`;
+          break;
+        case 'triangle-br': // 오른쪽 아래
+          pathData = `M${size-offset},${size-offset} L${size},${offset} L${offset},${size} Z`;
+          break;
+        default:
+          pathData = `M${size/2},0 L${size},${size} L0,${size} Z`;
+      }
+
+      return `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='${size}' height='${size}' viewBox='0 0 ${size} ${size}'%3E%3Cpath d='${pathData}' fill='${color}' stroke='%23000' stroke-width='1'/%3E%3C/svg%3E") ${size/2} ${size/2}, crosshair`;
+    }
+
     // 크기 0 (삼각형 브러시)
     if (rawBrushSize === 0) {
       const size = Math.max(8, cellSize);

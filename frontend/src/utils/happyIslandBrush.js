@@ -7,6 +7,7 @@ export class HappyIslandBrush {
     this.brushSize = 2; // 0 = triangle, 1+, 2+, 3+ = different shapes
     this.rawBrushSize = 2;
     this.direction = { x: 0, y: 0 };
+    this.isTriangleBrush = false; // 1x1 삼각형 브러시인지 여부
   }
 
   // 삼각형 브러시 포인트 (크기 0일 때만 사용)
@@ -220,8 +221,49 @@ export const happyBrush = new HappyIslandBrush();
 
 export const paintWithHappyBrush = (paintData, centerX, centerY, color, gridCols, gridRows) => {
   const newPaintData = { ...paintData };
-  const size = happyBrush.rawBrushSize;
   const brushType = happyBrush.brushType;
+  const isTriangleBrush = happyBrush.isTriangleBrush;
+
+  // 1x1 삼각형 브러시 (TRIANGLE_TL, TRIANGLE_TR, TRIANGLE_BL, TRIANGLE_BR)
+  if (isTriangleBrush && [BRUSH_TYPES.TRIANGLE_TL, BRUSH_TYPES.TRIANGLE_TR, BRUSH_TYPES.TRIANGLE_BL, BRUSH_TYPES.TRIANGLE_BR].includes(brushType)) {
+    if (centerX >= 0 && centerX < gridCols && centerY >= 0 && centerY < gridRows) {
+      const key = `${centerX},${centerY}`;
+      const existing = newPaintData[key];
+
+      // 기존 삼각형이 있는 경우
+      if (existing && existing.type === 'triangles') {
+        const existingTriangles = { ...existing.triangles };
+        existingTriangles[brushType] = color;
+
+        // 4개 삼각형이 모두 같은 색으로 칠해진 경우 사각형으로 변환
+        const triangleColors = Object.values(existingTriangles);
+        const uniqueColors = [...new Set(triangleColors)];
+
+        if (Object.keys(existingTriangles).length === 4 && uniqueColors.length === 1) {
+          newPaintData[key] = {
+            type: 'square',
+            color: color
+          };
+        } else {
+          newPaintData[key] = {
+            type: 'triangles',
+            triangles: existingTriangles
+          };
+        }
+      } else {
+        // 새로운 삼각형 추가
+        newPaintData[key] = {
+          type: 'triangles',
+          triangles: {
+            [brushType]: color
+          }
+        };
+      }
+    }
+    return newPaintData;
+  }
+
+  const size = happyBrush.rawBrushSize;
 
   // 크기 0: 삼각형 브러시 - HappyIslandDesigner처럼 완전히 덮어쓰기
   if (size === 0) {

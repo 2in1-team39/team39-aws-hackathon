@@ -20,7 +20,7 @@ export const PAINT_COLORS = {
 export const BRUSH_TYPES = {
   SQUARE: 'square',
   ROUNDED: 'rounded',
-  // 삼각형 타입들 (내부적으로 사용)
+  // 1x1 삼각형 브러시 타입들
   TRIANGLE_TL: 'triangle-tl',
   TRIANGLE_TR: 'triangle-tr',
   TRIANGLE_BL: 'triangle-bl',

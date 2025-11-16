@@ -493,49 +493,13 @@ const IslandCanvas = ({
                          lastPaintPos);
 
     if (useSweepPath) {
-      // SweepPath: 라인 위의 모든 셀에서 브러시를 sweep하여 빈 공간 제거
+      // SweepPath: 라인 위의 모든 점에서 브러시를 스탬프하여 gap-free 스트로크 생성
       console.log('Using sweepPath for diamond/octagon brush');
 
-      let prevPoint = null;
-      let prevDelta = null;
-
+      // Bresenham 라인의 모든 셀을 순회하며 브러시 스탬프
       doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (x, y) => {
-        const currentPoint = { x, y };
-
-        // 중복 제거
-        if (prevPoint && currentPoint.x === prevPoint.x && currentPoint.y === prevPoint.y) {
-          return;
-        }
-
-        if (prevPoint) {
-          const deltaX = currentPoint.x - prevPoint.x;
-          const deltaY = currentPoint.y - prevPoint.y;
-
-          // Sweep: 이전 브러시 위치와 현재 브러시 위치 사이를 채우기
-          if (prevDelta) {
-            // 방향 변화 감지 - sweep 적용
-            const sweptDeltaX = prevPoint.x - prevDelta.x - prevPoint.x;
-            const sweptDeltaY = prevPoint.y - prevDelta.y - prevPoint.y;
-
-            if (sweptDeltaX !== 0 || sweptDeltaY !== 0) {
-              // 추가 셀 추가 (sweep)
-              cellsToPaint.push(prevPoint);
-            }
-          }
-
-          prevDelta = { x: deltaX, y: deltaY };
-        } else if (!prevPoint) {
-          prevPoint = { x, y };
-        }
-
-        cellsToPaint.push(currentPoint);
-        prevPoint = currentPoint;
+        cellsToPaint.push({ x, y });
       });
-
-      // 마지막 점 추가
-      if (prevPoint) {
-        cellsToPaint.push(prevPoint);
-      }
     } else {
       // 기본 Bresenham 직선 보간
       if (lastPaintPos) {

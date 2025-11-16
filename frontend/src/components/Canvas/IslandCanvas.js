@@ -498,11 +498,8 @@ const IslandCanvas = ({
 
       // 라인 위의 모든 점에서 브러시의 영향 범위를 계산하고 수집
       const affectedCellsSet = new Set();
-      const linePoints = [];
 
       doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (lineX, lineY) => {
-        linePoints.push({ x: lineX, y: lineY });
-
         // 현재 선 위의 점에서 브러시가 영향을 주는 모든 셀 계산
         // 브러시 크기와 타입에 따라 다른 영역 계산
         const size = happyBrush.rawBrushSize; // 2 = 다이아몬드, 3+ = 팔각형
@@ -537,74 +534,10 @@ const IslandCanvas = ({
         }
       });
 
-      // 양쪽 끝점(첫 점과 마지막 점)에서 영향받는 셀들을 제외 (happy brush로 칠할 것)
-      const endpointCellsSet = new Set();
-
-      if (linePoints.length > 0) {
-        // 첫 점의 영향 범위
-        const firstPoint = linePoints[0];
-        const size = happyBrush.rawBrushSize;
-        if (size === 2) {
-          for (let dx = 0; dx < 2; dx++) {
-            for (let dy = 0; dy < 2; dy++) {
-              const x = firstPoint.x - 1 + dx;
-              const y = firstPoint.y - 1 + dy;
-              if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                endpointCellsSet.add(`${x},${y}`);
-              }
-            }
-          }
-        } else if (size >= 3) {
-          const halfSize = Math.floor(size / 2);
-          for (let dx = 0; dx < size; dx++) {
-            for (let dy = 0; dy < size; dy++) {
-              const x = firstPoint.x - halfSize + dx;
-              const y = firstPoint.y - halfSize + dy;
-              if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                endpointCellsSet.add(`${x},${y}`);
-              }
-            }
-          }
-        }
-
-        // 마지막 점의 영향 범위
-        const lastPoint = linePoints[linePoints.length - 1];
-        if (size === 2) {
-          for (let dx = 0; dx < 2; dx++) {
-            for (let dy = 0; dy < 2; dy++) {
-              const x = lastPoint.x - 1 + dx;
-              const y = lastPoint.y - 1 + dy;
-              if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                endpointCellsSet.add(`${x},${y}`);
-              }
-            }
-          }
-        } else if (size >= 3) {
-          const halfSize = Math.floor(size / 2);
-          for (let dx = 0; dx < size; dx++) {
-            for (let dy = 0; dy < size; dy++) {
-              const x = lastPoint.x - halfSize + dx;
-              const y = lastPoint.y - halfSize + dy;
-              if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                endpointCellsSet.add(`${x},${y}`);
-              }
-            }
-          }
-        }
-      }
-
-      // 양쪽 끝을 제외한 중간 셀들만 수집
-      for (const key of affectedCellsSet) {
-        if (!endpointCellsSet.has(key)) {
-          const [x, y] = key.split(',').map(Number);
-          cellsToPaint.push({ x, y, isMiddle: true });
-        }
-      }
-
-      // 양쪽 끝점 추가 (happy brush로 칠할 것 - isMiddle: false)
-      endpointCellsSet.forEach(key => {
+      // 모든 영향받는 셀을 사각형으로 수집 (끝점 포함)
+      affectedCellsSet.forEach(key => {
         const [x, y] = key.split(',').map(Number);
-        cellsToPaint.push({ x, y, isEndpoint: true });
+        cellsToPaint.push({ x, y, isSweepPath: true });
       });
     } else {
       // 기본 Bresenham 직선 보간
@@ -636,26 +569,26 @@ const IslandCanvas = ({
 
     // 중복 제거 (셀의 속성도 함께 유지)
     const uniqueCells = new Map();
-    cellsToPaint.forEach(({ x, y, isMiddle, isEndpoint }) => {
+    cellsToPaint.forEach(({ x, y, isSweepPath }) => {
       const key = `${x},${y}`;
       if (!uniqueCells.has(key)) {
-        uniqueCells.set(key, { x, y, isMiddle, isEndpoint });
+        uniqueCells.set(key, { x, y, isSweepPath });
       }
     });
 
     // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
-    for (const { x, y, isMiddle } of uniqueCells.values()) {
+    for (const { x, y, isSweepPath } of uniqueCells.values()) {
       if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
         if (currentTool === TOOLS.PAINT && selectedColor) {
-          // SweepPath 중간 셀: 사각형으로 직접 칠하기
-          if (useSweepPath && isMiddle) {
+          // SweepPath 셀: 모두 사각형으로 직접 칠하기 (happy brush 브러시 크기 적용 안 함)
+          if (isSweepPath) {
             const key = `${x},${y}`;
             newPaintData[key] = {
               type: 'square',
               color: selectedColor.color
             };
           }
-          // SweepPath 끝점 또는 일반 페인팅: happy brush 적용
+          // 일반 페인팅: happy brush 적용
           else {
             // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
             happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });

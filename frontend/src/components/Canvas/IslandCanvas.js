@@ -504,6 +504,7 @@ const IslandCanvas = ({
       doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (lineX, lineY) => {
         linePoints.push({ x: lineX, y: lineY });
       });
+      console.log(`SweepPath linePoints from (${lastPaintPos.x}, ${lastPaintPos.y}) to (${gridX}, ${gridY}):`, linePoints);
 
       // Step 2: 모든 라인 점에서 영향받는 셀 수집
       // 각 라인 점에서 getAffectedCells를 호출하여 정확한 셀들을 수집
@@ -518,21 +519,63 @@ const IslandCanvas = ({
       linePoints.forEach((point, index) => {
         const isStartPoint = index === 0;
         const isEndPoint = index === linePoints.length - 1;
+        const isMiddlePoint = !isStartPoint && !isEndPoint;
 
         // 현재 라인 점에서 영향받는 셀 계산
         if ((size === 2 || size >= 3) && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // getAffectedCells 호출하여 정확한 셀 가져오기
-          const cells = happyBrush.getAffectedCells(point.x, point.y);
+          // paintWithHappyBrush의 좌표 시스템에 맞춰 셀 계산
+          // size 2: 2x2 다이아몬드 패턴 (centerX-1 부터 centerX까지)
+          // size 3+: 팔각형 패턴
 
-          // 모든 셀을 cellsToPaint에 추가 (끝점/중간 표시)
-          for (const cell of cells) {
-            if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
-              cellsToPaint.push({
-                x: cell.x,
-                y: cell.y,
-                isSweepPath: true,
-                isEndpoint: isStartPoint || isEndPoint
-              });
+          if (size === 2) {
+            // 2x2 다이아몬드: centerX-1부터 centerX까지, centerY-1부터 centerY까지
+            const cellsForBrush = [
+              { x: point.x - 1, y: point.y - 1 },
+              { x: point.x, y: point.y - 1 },
+              { x: point.x - 1, y: point.y },
+              { x: point.x, y: point.y }
+            ];
+
+            if (isMiddlePoint) {
+              console.log(`Middle point [${index}] (${point.x}, ${point.y}) -> cells:`, cellsForBrush);
+            }
+
+            for (const cell of cellsForBrush) {
+              if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
+                cellsToPaint.push({
+                  x: cell.x,
+                  y: cell.y,
+                  isSweepPath: true,
+                  isEndpoint: isStartPoint || isEndPoint
+                });
+              }
+            }
+          } else if (size >= 3) {
+            // 팔각형: paintWithHappyBrush와 동일한 좌표 시스템 사용
+            const halfSize = Math.floor(size / 2);
+            const startX = point.x - halfSize;
+            const startY = point.y - halfSize;
+
+            const cells = [];
+            for (let dx = 0; dx < size; dx++) {
+              for (let dy = 0; dy < size; dy++) {
+                const x = startX + dx;
+                const y = startY + dy;
+
+                if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
+                  cells.push({ x, y });
+                  cellsToPaint.push({
+                    x: x,
+                    y: y,
+                    isSweepPath: true,
+                    isEndpoint: isStartPoint || isEndPoint
+                  });
+                }
+              }
+            }
+
+            if (isMiddlePoint) {
+              console.log(`Middle point [${index}] (${point.x}, ${point.y}) startX=${startX}, startY=${startY} -> ${cells.length} cells:`, cells);
             }
           }
         }

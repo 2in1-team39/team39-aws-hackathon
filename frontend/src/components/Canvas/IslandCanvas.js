@@ -517,22 +517,47 @@ const IslandCanvas = ({
 
         // 현재 라인 점에서 영향받는 셀 계산
         if (size === 2 && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // 다이아몬드 (2x2): 정확한 다이아몬드 모양 셀 4개
-          // 브러시 포인트: (1,0), (2,1), (1,2), (0,1) - 중심 기준 상대 좌표
-          // 중심에서 -1 오프셋 적용하여 실제 좌표로 변환
-          const diamondCells = [
-            { x: point.x, y: point.y - 1 },      // 상단 (1,0) → (1,-1)
-            { x: point.x + 1, y: point.y },      // 우측 (2,1) → (1,0)
-            { x: point.x, y: point.y + 1 },      // 하단 (1,2) → (1,1)
-            { x: point.x - 1, y: point.y }       // 좌측 (0,1) → (-1,0)
+          // 다이아몬드 (2x2): happyBrush.getAffectedCells 로직 구현
+          // 브러시 포인트: (1,0), (2,1), (1,2), (0,1)
+          const diamondPoints = [
+            { x: 1, y: 0 },
+            { x: 2, y: 1 },
+            { x: 1, y: 2 },
+            { x: 0, y: 1 }
           ];
-          for (const cell of diamondCells) {
-            if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
-              affectedCells.push(cell);
+
+          // centeredCoordinate 계산 (짝수 크기)
+          const centeredCoord = {
+            x: Math.floor(point.x + 0.5) - 0.5,
+            y: Math.floor(point.y + 0.5) - 0.5
+          };
+
+          // Point-in-polygon 테스트
+          const isPointInPolygon = (px, py, polygon) => {
+            let inside = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+              const xi = polygon[i].x, yi = polygon[i].y;
+              const xj = polygon[j].x, yj = polygon[j].y;
+              const intersect = ((yi > py) !== (yj > py)) && (px < ((xj - xi) * (py - yi) / (yj - yi) + xi));
+              if (intersect) inside = !inside;
+            }
+            return inside;
+          };
+
+          // minX=0, maxX=2, minY=0, maxY=2
+          for (let y = 0; y < 2; y++) {
+            for (let x = 0; x < 2; x++) {
+              if (isPointInPolygon(x + 0.5, y + 0.5, diamondPoints)) {
+                const cellX = Math.floor(centeredCoord.x + x);
+                const cellY = Math.floor(centeredCoord.y + y);
+                if (cellX >= 0 && cellX < GRID_CONFIG.COLS && cellY >= 0 && cellY < GRID_CONFIG.ROWS) {
+                  affectedCells.push({ x: cellX, y: cellY });
+                }
+              }
             }
           }
         } else if (size >= 3 && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // 팔각형 (3x3+): point-in-polygon 테스트로 정확한 셀들만 선택
+          // 팔각형 (3x3+): happyBrush.getAffectedCells 로직 구현
           const ratio = 0.67;
           const diagonalSize = Math.floor((size / 2) * ratio);
           const straightSize = size - 2 * diagonalSize;
@@ -551,6 +576,12 @@ const IslandCanvas = ({
             { x: 0, y: minPoint }
           ];
 
+          // centeredCoordinate 계산 (짝수 크기)
+          const centeredCoord = {
+            x: Math.floor(point.x + 0.5) - 0.5,
+            y: Math.floor(point.y + 0.5) - 0.5
+          };
+
           // Point-in-polygon 테스트
           const isPointInPolygon = (px, py, polygon) => {
             let inside = false;
@@ -563,18 +594,14 @@ const IslandCanvas = ({
             return inside;
           };
 
-          // 팔각형 경계 내의 모든 셀 수집
-          const halfSize = Math.floor(size / 2);
-          for (let dy = -halfSize - 1; dy <= halfSize + 1; dy++) {
-            for (let dx = -halfSize - 1; dx <= halfSize + 1; dx++) {
-              const x = point.x + dx;
-              const y = point.y + dy;
-              // 상대 좌표로 변환하여 point-in-polygon 테스트
-              const relX = dx + halfSize;
-              const relY = dy + halfSize;
-              if (isPointInPolygon(relX + 0.5, relY + 0.5, octagonPoints)) {
-                if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                  affectedCells.push({ x, y });
+          // minX=0, maxX=size, minY=0, maxY=size
+          for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+              if (isPointInPolygon(x + 0.5, y + 0.5, octagonPoints)) {
+                const cellX = Math.floor(centeredCoord.x + x);
+                const cellY = Math.floor(centeredCoord.y + y);
+                if (cellX >= 0 && cellX < GRID_CONFIG.COLS && cellY >= 0 && cellY < GRID_CONFIG.ROWS) {
+                  affectedCells.push({ x: cellX, y: cellY });
                 }
               }
             }

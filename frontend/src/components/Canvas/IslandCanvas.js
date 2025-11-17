@@ -499,9 +499,15 @@ const IslandCanvas = ({
         linePoints.push({ x: lineX, y: lineY });
       });
 
-      // Step 2: 모든 라인 점에서 영향받는 셀 수집
-      // 각 라인 점에서 getAffectedCells를 호출하여 정확한 셀들을 수집
-      // 중복은 나중에 제거되며, 자동으로 gap-free 스트로크가 생성됨
+      // Step 2: 드래그 방향 계산
+      // 드래그 방향에 따라 중간 셀들을 선택적으로 채움
+      const dragDeltaX = gridX - lastPaintPos.x;
+      const dragDeltaY = gridY - lastPaintPos.y;
+      // 방향을 -1, 0, 1로 정규화
+      const dirX = dragDeltaX === 0 ? 0 : (dragDeltaX > 0 ? 1 : -1);
+      const dirY = dragDeltaY === 0 ? 0 : (dragDeltaY > 0 ? 1 : -1);
+
+      // Step 3: 모든 라인 점에서 영향받는 셀 수집
       const originalBrushSize = happyBrush.brushSize;
       const originalRawBrushSize = happyBrush.rawBrushSize;
 
@@ -521,12 +527,28 @@ const IslandCanvas = ({
 
           if (size === 2) {
             // 2x2 다이아몬드: centerX-1부터 centerX까지, centerY-1부터 centerY까지
-            const cellsForBrush = [
+            let cellsForBrush = [
               { x: point.x - 1, y: point.y - 1 },
               { x: point.x, y: point.y - 1 },
               { x: point.x - 1, y: point.y },
               { x: point.x, y: point.y }
             ];
+
+            // 시작점: 완전한 브러시 모양 (모든 셀)
+            // 중간/끝점: 드래그 방향쪽 절반만 칠하기
+            if (!isStartPoint) {
+              cellsForBrush = cellsForBrush.filter(cell => {
+                // 드래그 방향쪽 절반만 선택
+                // dirX > 0: 오른쪽 드래그 -> x > centerX-1 (즉, x >= centerX)
+                // dirX < 0: 왼쪽 드래그 -> x < centerX (즉, x <= centerX-1)
+                // dirY > 0: 아래쪽 드래그 -> y > centerY-1 (즉, y >= centerY)
+                // dirY < 0: 위쪽 드래그 -> y < centerY (즉, y <= centerY-1)
+
+                const passX = dirX === 0 || (dirX > 0 ? cell.x >= point.x : cell.x <= point.x - 1);
+                const passY = dirY === 0 || (dirY > 0 ? cell.y >= point.y : cell.y <= point.y - 1);
+                return passX && passY;
+              });
+            }
 
             for (const cell of cellsForBrush) {
               if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
@@ -549,7 +571,17 @@ const IslandCanvas = ({
                 const x = startX + dx;
                 const y = startY + dy;
 
-                if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
+                // 시작점: 모든 셀 포함
+                // 중간/끝점: 드래그 방향쪽 절반만 포함
+                let shouldInclude = true;
+                if (!isStartPoint) {
+                  // 중심(point.x, point.y)을 기준으로 드래그 방향쪽 절반만 선택
+                  const passX = dirX === 0 || (dirX > 0 ? x >= point.x : x < point.x);
+                  const passY = dirY === 0 || (dirY > 0 ? y >= point.y : y < point.y);
+                  shouldInclude = passX && passY;
+                }
+
+                if (shouldInclude && x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
                   cellsToPaint.push({
                     x: x,
                     y: y,

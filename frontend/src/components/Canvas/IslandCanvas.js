@@ -7,7 +7,6 @@ import {
   erasePaintArea
 } from '../../utils/trianglePainting';
 import { happyBrush, paintWithHappyBrush } from '../../utils/happyIslandBrush';
-import { doForCellsOnLine } from '../../utils/PathHelpers';
 
 const ObjectImage = ({ x, y, width, height, imageSrc }) => {
   const [image, setImage] = useState(null);
@@ -484,189 +483,35 @@ const IslandCanvas = ({
     let newPaintData = { ...paintData };
     let cellsToPaint = [];
 
-    // SweepPath를 사용할지 결정 (다이아몬드와 팔각형 브러시)
-    const useSweepPath = (currentTool === TOOLS.PAINT &&
-                         currentBrushType === BRUSH_TYPES.ROUNDED &&
-                         (happyBrush.brushSize === 2 || happyBrush.brushSize >= 3) &&
-                         lastPaintPos);
+    // 기본 Bresenham 직선 보간
+    if (lastPaintPos) {
+      const dx = Math.abs(gridX - lastPaintPos.x);
+      const dy = Math.abs(gridY - lastPaintPos.y);
+      const sx = lastPaintPos.x < gridX ? 1 : -1;
+      const sy = lastPaintPos.y < gridY ? 1 : -1;
+      let err = dx - dy;
 
-    if (useSweepPath) {
-      const size = happyBrush.rawBrushSize;
-      const linePoints = []; // 모든 라인 점 저장
+      let x = lastPaintPos.x;
+      let y = lastPaintPos.y;
 
-      // Step 1: 라인 위의 모든 점 수집
-      doForCellsOnLine(lastPaintPos.x, lastPaintPos.y, gridX, gridY, (lineX, lineY) => {
-        linePoints.push({ x: lineX, y: lineY });
-      });
-
-      // Step 2: 드래그 방향 계산
-      // 드래그 방향에 따라 중간 셀들을 선택적으로 채움
-      const dragDeltaX = gridX - lastPaintPos.x;
-      const dragDeltaY = gridY - lastPaintPos.y;
-      // 방향을 -1, 0, 1로 정규화
-      const dirX = dragDeltaX === 0 ? 0 : (dragDeltaX > 0 ? 1 : -1);
-      const dirY = dragDeltaY === 0 ? 0 : (dragDeltaY > 0 ? 1 : -1);
-
-      // Step 3: 모든 라인 점에서 영향받는 셀 수집
-      const originalBrushSize = happyBrush.brushSize;
-      const originalRawBrushSize = happyBrush.rawBrushSize;
-
-      // 브러시 상태 임시 설정
-      happyBrush.brushSize = size;
-      happyBrush.rawBrushSize = size;
-
-      linePoints.forEach((point, index) => {
-        const isStartPoint = index === 0;
-        const isEndPoint = index === linePoints.length - 1;
-
-        // 현재 라인 점에서 영향받는 셀 계산
-        if ((size === 2 || size >= 3) && currentBrushType === BRUSH_TYPES.ROUNDED) {
-          // paintWithHappyBrush의 좌표 시스템에 맞춰 셀 계산
-          // size 2: 2x2 다이아몬드 패턴 (centerX-1 부터 centerX까지)
-          // size 3+: 팔각형 패턴
-
-          if (size === 2) {
-            // 2x2 다이아몬드: centerX-1부터 centerX까지, centerY-1부터 centerY까지
-            let cellsForBrush = [
-              { x: point.x - 1, y: point.y - 1 },
-              { x: point.x, y: point.y - 1 },
-              { x: point.x - 1, y: point.y },
-              { x: point.x, y: point.y }
-            ];
-
-            // 시작점과 끝점: 완전한 브러시 모양 (모든 셀)
-            // 중간점: 드래그 방향쪽 절반만 칠하기
-            if (!isStartPoint && !isEndPoint) {
-              cellsForBrush = cellsForBrush.filter(cell => {
-                // 드래그 방향쪽 절반만 선택
-                let includeX = true;
-                let includeY = true;
-
-                if (dirX > 0) includeX = cell.x >= point.x;      // 오른쪽 드래그: 우측 절반
-                else if (dirX < 0) includeX = cell.x < point.x;  // 왼쪽 드래그: 좌측 절반
-
-                if (dirY > 0) includeY = cell.y >= point.y;      // 아래쪽 드래그: 하단 절반
-                else if (dirY < 0) includeY = cell.y < point.y;  // 위쪽 드래그: 상단 절반
-
-                return includeX && includeY;
-              });
-            }
-
-            for (const cell of cellsForBrush) {
-              if (cell.x >= 0 && cell.x < GRID_CONFIG.COLS && cell.y >= 0 && cell.y < GRID_CONFIG.ROWS) {
-                cellsToPaint.push({
-                  x: cell.x,
-                  y: cell.y,
-                  isSweepPath: true,
-                  isEndpoint: isStartPoint || isEndPoint
-                });
-              }
-            }
-          } else if (size >= 3) {
-            // 팔각형: paintWithHappyBrush와 동일한 좌표 시스템 사용
-            const halfSize = Math.floor(size / 2);
-            const startX = point.x - halfSize;
-            const startY = point.y - halfSize;
-
-            for (let dx = 0; dx < size; dx++) {
-              for (let dy = 0; dy < size; dy++) {
-                const x = startX + dx;
-                const y = startY + dy;
-
-                // 시작점과 끝점: 모든 셀 포함
-                // 중간점: 드래그 방향쪽 절반만 포함
-                let shouldInclude = true;
-                if (!isStartPoint && !isEndPoint) {
-                  // 중심(point.x, point.y)을 기준으로 드래그 방향쪽 절반만 선택
-                  let includeX = true;
-                  let includeY = true;
-
-                  if (dirX > 0) includeX = x >= point.x;      // 오른쪽 드래그: 우측 절반
-                  else if (dirX < 0) includeX = x < point.x;  // 왼쪽 드래그: 좌측 절반
-
-                  if (dirY > 0) includeY = y >= point.y;      // 아래쪽 드래그: 하단 절반
-                  else if (dirY < 0) includeY = y < point.y;  // 위쪽 드래그: 상단 절반
-
-                  shouldInclude = includeX && includeY;
-                }
-
-                if (shouldInclude && x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
-                  cellsToPaint.push({
-                    x: x,
-                    y: y,
-                    isSweepPath: true,
-                    isEndpoint: isStartPoint || isEndPoint
-                  });
-                }
-              }
-            }
-          }
-        }
-      });
-
-      // 브러시 상태 복원
-      happyBrush.brushSize = originalBrushSize;
-      happyBrush.rawBrushSize = originalRawBrushSize;
-    } else {
-      // 기본 Bresenham 직선 보간
-      if (lastPaintPos) {
-        const dx = Math.abs(gridX - lastPaintPos.x);
-        const dy = Math.abs(gridY - lastPaintPos.y);
-        const sx = lastPaintPos.x < gridX ? 1 : -1;
-        const sy = lastPaintPos.y < gridY ? 1 : -1;
-        let err = dx - dy;
-
-        let x = lastPaintPos.x;
-        let y = lastPaintPos.y;
-
-        while (true) {
-          cellsToPaint.push({ x, y });
-          if (x === gridX && y === gridY) break;
-          const e2 = 2 * err;
-          if (e2 > -dy) { err -= dy; x += sx; }
-          if (e2 < dx) { err += dx; y += sy; }
-        }
-      } else {
-        cellsToPaint.push({ x: gridX, y: gridY });
+      while (true) {
+        cellsToPaint.push({ x, y });
+        if (x === gridX && y === gridY) break;
+        const e2 = 2 * err;
+        if (e2 > -dy) { err -= dy; x += sx; }
+        if (e2 < dx) { err += dx; y += sy; }
       }
+    } else {
+      cellsToPaint.push({ x: gridX, y: gridY });
     }
 
-    // 중복 제거: 같은 셀이 여러 번 나타나면 isEndpoint 우선
-    const uniqueCells = new Map();
-    cellsToPaint.forEach(({ x, y, isSweepPath, isEndpoint }) => {
-      const key = `${x},${y}`;
-      if (!uniqueCells.has(key)) {
-        uniqueCells.set(key, { x, y, isSweepPath, isEndpoint: isEndpoint || false });
-      } else {
-        // 이미 있는 셀: isEndpoint가 true인 것이 우선
-        const existing = uniqueCells.get(key);
-        if (isEndpoint && !existing.isEndpoint) {
-          // 현재가 끝점이고 기존이 아니면 끝점으로 업데이트
-          uniqueCells.set(key, { x, y, isSweepPath, isEndpoint: true });
-        }
-      }
-    });
-
     // HappyIslandDesigner 방식으로 브러시 크기를 고려한 페인팅
-    for (const { x, y, isSweepPath } of uniqueCells.values()) {
+    for (const { x, y } of cellsToPaint) {
       if (x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
         if (currentTool === TOOLS.PAINT && selectedColor) {
-          // SweepPath: 모든 셀을 직접 사각형으로 칠하기 (happy brush 없음)
-          // getAffectedCells가 이미 정확한 브러시 모양의 셀들을 반환하므로
-          // 끝점도 자동으로 올바른 브러시 모양이 유지됨
-          if (isSweepPath) {
-            const key = `${x},${y}`;
-            newPaintData[key] = {
-              type: 'square',
-              color: selectedColor.color
-            };
-          }
-          // 일반 페인팅: happy brush 적용
-          else {
-            // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
-            happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
-            newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
-          }
+          // 마우스 위치에 따른 삼각형 방향 업데이트 (셀 좌표 기준)
+          happyBrush.updateDirection({ x: x + (imageX % 1), y: y + (imageY % 1) });
+          newPaintData = paintWithHappyBrush(newPaintData, x, y, selectedColor.color, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
         } else if (currentTool === TOOLS.ERASER) {
           newPaintData = erasePaintArea(newPaintData, x, y, eraserSize, GRID_CONFIG.COLS, GRID_CONFIG.ROWS);
 

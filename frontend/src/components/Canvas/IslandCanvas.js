@@ -534,19 +534,21 @@ const IslandCanvas = ({
               { x: point.x, y: point.y }
             ];
 
-            // 시작점: 완전한 브러시 모양 (모든 셀)
-            // 중간/끝점: 드래그 방향쪽 절반만 칠하기
-            if (!isStartPoint) {
+            // 시작점과 끝점: 완전한 브러시 모양 (모든 셀)
+            // 중간점: 드래그 방향쪽 절반만 칠하기
+            if (!isStartPoint && !isEndPoint) {
               cellsForBrush = cellsForBrush.filter(cell => {
                 // 드래그 방향쪽 절반만 선택
-                // dirX > 0: 오른쪽 드래그 -> x > centerX-1 (즉, x >= centerX)
-                // dirX < 0: 왼쪽 드래그 -> x < centerX (즉, x <= centerX-1)
-                // dirY > 0: 아래쪽 드래그 -> y > centerY-1 (즉, y >= centerY)
-                // dirY < 0: 위쪽 드래그 -> y < centerY (즉, y <= centerY-1)
+                let includeX = true;
+                let includeY = true;
 
-                const passX = dirX === 0 || (dirX > 0 ? cell.x >= point.x : cell.x <= point.x - 1);
-                const passY = dirY === 0 || (dirY > 0 ? cell.y >= point.y : cell.y <= point.y - 1);
-                return passX && passY;
+                if (dirX > 0) includeX = cell.x >= point.x;      // 오른쪽 드래그: 우측 절반
+                else if (dirX < 0) includeX = cell.x < point.x;  // 왼쪽 드래그: 좌측 절반
+
+                if (dirY > 0) includeY = cell.y >= point.y;      // 아래쪽 드래그: 하단 절반
+                else if (dirY < 0) includeY = cell.y < point.y;  // 위쪽 드래그: 상단 절반
+
+                return includeX && includeY;
               });
             }
 
@@ -571,14 +573,21 @@ const IslandCanvas = ({
                 const x = startX + dx;
                 const y = startY + dy;
 
-                // 시작점: 모든 셀 포함
-                // 중간/끝점: 드래그 방향쪽 절반만 포함
+                // 시작점과 끝점: 모든 셀 포함
+                // 중간점: 드래그 방향쪽 절반만 포함
                 let shouldInclude = true;
-                if (!isStartPoint) {
+                if (!isStartPoint && !isEndPoint) {
                   // 중심(point.x, point.y)을 기준으로 드래그 방향쪽 절반만 선택
-                  const passX = dirX === 0 || (dirX > 0 ? x >= point.x : x < point.x);
-                  const passY = dirY === 0 || (dirY > 0 ? y >= point.y : y < point.y);
-                  shouldInclude = passX && passY;
+                  let includeX = true;
+                  let includeY = true;
+
+                  if (dirX > 0) includeX = x >= point.x;      // 오른쪽 드래그: 우측 절반
+                  else if (dirX < 0) includeX = x < point.x;  // 왼쪽 드래그: 좌측 절반
+
+                  if (dirY > 0) includeY = y >= point.y;      // 아래쪽 드래그: 하단 절반
+                  else if (dirY < 0) includeY = y < point.y;  // 위쪽 드래그: 상단 절반
+
+                  shouldInclude = includeX && includeY;
                 }
 
                 if (shouldInclude && x >= 0 && x < GRID_CONFIG.COLS && y >= 0 && y < GRID_CONFIG.ROWS) {
